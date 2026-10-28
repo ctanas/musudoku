@@ -1,0 +1,5 @@
+# Keep LF everywhere: mux_launch.sh and build.sh must run on Linux/muOS.
+* text=auto eol=lf
+
+*.png binary
+*.ttf binary
