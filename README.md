@@ -217,17 +217,6 @@ runtime, set `LOVE_RUNTIME=/path/to/dir` containing `love` and `libs.aarch64/`.
 That bundle includes libraries the game doesn't need, so a trimmed runtime would
 make the package much smaller.
 
-## Not yet tested on hardware
-
-Everything was tested on a PC: engine tests, and full play-throughs with screenshots
-at several resolutions. Things to check on the device:
-
-- Button mapping, especially whether A and B match the printed labels
-- That Start and Menu open the pause menu, and Quit returns to muOS
-- Puzzle generation time on the H700 (expected well under a second)
-- Saving and resuming after quitting, sleep and power-off
-- Sound volume
-
 ## Credits and licenses
 
 - Game code: MIT (see `LICENSE`)
