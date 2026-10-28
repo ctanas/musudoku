@@ -228,13 +228,6 @@ at several resolutions. Things to check on the device:
 - Saving and resuming after quitting, sleep and power-off
 - Sound volume
 
-## Ideas for later
-
-- A PortMaster package (the 2048 Plus repo shows the layout)
-- A trimmed aarch64 LÖVE runtime
-- Daily puzzle with a date-based seed
-- Rumble feedback on mistakes
-
 ## Credits and licenses
 
 - Game code: MIT (see `LICENSE`)
