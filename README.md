@@ -3,6 +3,9 @@
 A Sudoku game for muOS (MustardOS) handhelds, built with LÖVE 11.5. Designed for
 the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
+<img src="screenshots/title.png" alt="Title screen" width="49%"> <img src="screenshots/play.png" alt="A Hard puzzle with pencil notes" width="49%">
+<img src="screenshots/theme-paper.png" alt="Paper theme" width="49%"> <img src="screenshots/theme-walnut.png" alt="Walnut theme with the number pad open" width="49%">
+
 ## Features
 
 - Four difficulties. Puzzles are generated on the device, always have exactly one
@@ -181,6 +184,7 @@ hidden.
 mux_launch.sh        muOS launcher (sets up SDL, saves, runs LÖVE)
 mux_lang.ini         Name and help text shown in the muOS menu
 glyph/               Menu icon
+screenshots/         Images used in this README (not packaged)
 build.sh             Build, test and run commands
 packs/               Starter pack (copied into the muxapp)
 tests/               Engine and pack-format tests (plain luajit, no LÖVE needed)
