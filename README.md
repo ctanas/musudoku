@@ -254,7 +254,8 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
   src/theme.lua      Color themes, chalk dust texture and wooden frame
   src/sound.lua      Synthesized sound effects
   src/scenes/        Title, difficulty, generating, play, pause, win,
-                     settings, statistics, confirm, packs and pack screens
+                     settings, statistics, confirm, packs, pack and about
+                     screens
   dev/autoshot.lua   Screenshot harness (left out of builds)
   dev/idletest.lua   Measures frames drawn while idle (left out of builds)
   dev/fxshots.lua    Screenshots of the completion effects (left out of builds)
@@ -273,7 +274,13 @@ make the package much smaller.
 
 ## Credits and licenses
 
+muSudoku was created by amiralul. **About** on the title screen shows these credits
+in the game.
+
 - Game code: MIT (see `LICENSE`)
 - Atkinson Hyperlegible font by the Braille Institute: SIL Open Font License
 - LÖVE: zlib license
 - Launcher structure and aarch64 runtime: 2048 Plus by saitamasahil (MIT)
+- Dancing Links generator: Donald Knuth's Algorithm X
+- Theme colors: Solarized by Ethan Schoonover, Nord by Arctic Ice Studio and Gruvbox
+  by Pavel Pertsev (all MIT)

@@ -24,6 +24,7 @@ local SCENES = {
     confirm = require("src.scenes.confirm"),
     packs = require("src.scenes.packs"),
     pack = require("src.scenes.pack"),
+    about = require("src.scenes.about"),
 }
 
 local app = {
