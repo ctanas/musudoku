@@ -48,6 +48,12 @@ function ui.width(str, size, weight)
     return ui.font(size, weight):getWidth(str) / ui.s
 end
 
+-- Round a canvas coordinate to a whole screen pixel. Glyphs drawn between
+-- pixels get smeared by linear filtering, so text always starts on one.
+local function snap(v)
+    return math.floor(v * ui.s + 0.5) / ui.s
+end
+
 -- Draw text with its top-left at (x, y). With `align` ("left", "center",
 -- "right") the text is laid out inside `width`.
 function ui.text(str, x, y, size, weight, align, width)
@@ -55,9 +61,9 @@ function ui.text(str, x, y, size, weight, align, width)
     love.graphics.setFont(f)
     local inv = 1 / ui.s
     if align then
-        love.graphics.printf(str, x, y, width * ui.s, align, 0, inv, inv)
+        love.graphics.printf(str, snap(x), snap(y), width * ui.s, align, 0, inv, inv)
     else
-        love.graphics.print(str, x, y, 0, inv, inv)
+        love.graphics.print(str, snap(x), snap(y), 0, inv, inv)
     end
 end
 
@@ -79,7 +85,7 @@ function ui.centered(str, x, cy, size, weight, align)
     local left = x
     if align == "center" or align == nil then left = x - w / 2
     elseif align == "right" then left = x - w end
-    love.graphics.print(str, left, top, 0, inv, inv)
+    love.graphics.print(str, snap(left), snap(top), 0, inv, inv)
     return w
 end
 
@@ -109,18 +115,20 @@ function ui.glyph(label, x, cy, alpha)
 end
 
 -- A row of {button, label} pairs. align "left" starts at x, "right" ends at x.
-function ui.hints(list, x, cy, align, alpha)
+-- size is the label size (default 15).
+function ui.hints(list, x, cy, align, alpha, size)
+    size = size or 15
     local gap, inner = 18, 6
     local total = 0
     for k, item in ipairs(list) do
-        total = total + ui.glyphWidth(item[1]) + inner + ui.width(item[2], 15)
+        total = total + ui.glyphWidth(item[1]) + inner + ui.width(item[2], size)
         if k < #list then total = total + gap end
     end
     local cx = (align == "right") and (x - total) or (align == "center" and x - total / 2 or x)
     for _, item in ipairs(list) do
         cx = cx + ui.glyph(item[1], cx, cy, alpha) + inner
         theme.set("muted", alpha)
-        cx = cx + ui.centered(item[2], cx, cy, 15, "regular", "left") + gap
+        cx = cx + ui.centered(item[2], cx, cy, size, "regular", "left") + gap
     end
 end
 

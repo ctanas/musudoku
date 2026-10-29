@@ -589,10 +589,10 @@ function Play:drawBoard()
                 love.graphics.push()
                 love.graphics.translate(x + CS / 2, y + CS / 2)
                 love.graphics.scale(scale)
-                ui.centered(tostring(v), 0, 0, 32, "bold", "center")
+                ui.centered(tostring(v), 0, 0, 32, "regular", "center")
                 love.graphics.pop()
             else
-                ui.centered(tostring(v), x + CS / 2, y + CS / 2, 32, "bold", "center")
+                ui.centered(tostring(v), x + CS / 2, y + CS / 2, 32, "regular", "center")
             end
         else
             local notes = g.notes[i]
@@ -613,7 +613,7 @@ function Play:drawBoard()
             end
             if hint and hint.action == "place" and i == hint.target then
                 theme.set("accent", 0.55)
-                ui.centered(tostring(hint.digit), x + CS / 2, y + CS / 2, 32, "bold", "center")
+                ui.centered(tostring(hint.digit), x + CS / 2, y + CS / 2, 32, "regular", "center")
                 notes = 0
             end
             if notes ~= 0 then
@@ -779,9 +779,9 @@ function Play:drawPanel()
 
     local function counter(label, value, cx)
         theme.set("muted")
-        local w = ui.centered(label, cx, y, 15, "regular", "left")
+        local w = ui.centered(label, cx, y, 17, "regular", "left")
         theme.set("text")
-        ui.centered(tostring(value), cx + w + 6, y, 15, "bold", "left")
+        ui.centered(tostring(value), cx + w + 6, y, 17, "bold", "left")
     end
     -- the hint count shows if hints are on, or were used earlier in this puzzle
     local showHints = settings.hints ~= "off" or g.hints > 0
@@ -806,9 +806,9 @@ function Play:drawPanel()
     theme.set("accent")
     ui.rect("fill", x + sx + 3, y + 3, half - 6, 28, 6)
     theme.set(pencil and "muted" or "accentText")
-    ui.centered("Pen", x + half / 2, y + 17, 16, "bold", "center")
+    ui.centered("Pen", x + half / 2, y + 17, 18, "bold", "center")
     theme.set(pencil and "accentText" or "muted")
-    ui.centered("Pencil", x + half + half / 2, y + 17, 16, "bold", "center")
+    ui.centered("Pencil", x + half + half / 2, y + 17, 18, "bold", "center")
     y = y + 48
 
     if self.hint then
@@ -819,7 +819,7 @@ function Play:drawPanel()
     -- remaining digits
     local counts = g:digitCounts()
     local match = self.pad and self.pad.sel or (settings.matching and g.values[g.cursor] or 0)
-    local tw, th, gap = 66, 38, 9
+    local tw, th, gap = 68, 38, 6
     for d = 1, 9 do
         local r, c = math.floor((d - 1) / 3), (d - 1) % 3
         local tx, ty = x + c * (tw + gap), y + r * (th + 7)
@@ -839,14 +839,14 @@ function Play:drawPanel()
         end
         local alpha = (left <= 0) and 0.4 or 1
         theme.set("text", alpha)
-        ui.centered(tostring(d), tx + 16, ty + th / 2, 22, "bold", "center")
+        ui.centered(tostring(d), tx + 13, ty + th / 2, 22, "bold", "center")
         theme.set("muted", alpha)
         if left <= 0 then
             love.graphics.setLineWidth(2.5)
-            local cx, cy = tx + 46, ty + th / 2
+            local cx, cy = tx + tw - 20, ty + th / 2
             love.graphics.line(cx - 7, cy, cx - 2, cy + 5, cx + 8, cy - 6)
         else
-            ui.centered(left .. " left", tx + tw - 7, ty + th / 2 + 1, 12, "regular", "right")
+            ui.centered(left .. " left", tx + tw - 7, ty + th / 2 + 1, 14, "regular", "right")
         end
     end
 
@@ -869,8 +869,8 @@ function Play:drawPanel()
     local hy = 465 - (#rows - 1) * 28
     for k, row in ipairs(rows) do
         local cy = hy + (k - 1) * 28
-        ui.hints({ row[1] }, x, cy, "left")
-        if row[2] then ui.hints({ row[2] }, x + 116, cy, "left") end
+        ui.hints({ row[1] }, x, cy, "left", nil, 17)
+        if row[2] then ui.hints({ row[2] }, x + 116, cy, "left", nil, 17) end
     end
 end
 
