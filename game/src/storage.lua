@@ -98,6 +98,7 @@ storage.DEFAULT_SETTINGS = {
     timer = true,
     sound = true,
     hints = "off", -- "off" | "explained" | "instant"
+    boardOnly = false, -- distraction-free: just the board, centered
 }
 
 local CHOICES = {

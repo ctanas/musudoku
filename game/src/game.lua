@@ -243,6 +243,22 @@ function Game:fillNotes()
     return { filled = true, changed = self:_commit() }
 end
 
+function Game:clearNotes()
+    self:_begin()
+    for i = 1, 81 do
+        if self.notes[i] ~= 0 then self:_set(i, self.values[i], 0) end
+    end
+    return { cleared = true, changed = self:_commit() }
+end
+
+-- Select's notes button: clear all notes if there are any, otherwise fill them.
+function Game:toggleNotes()
+    for i = 1, 81 do
+        if self.notes[i] ~= 0 then return self:clearNotes() end
+    end
+    return self:fillNotes()
+end
+
 -- Picks the cell a hint should reveal when the cursor's cell is already right:
 -- the unsolved cell with the fewest legal candidates.
 function Game:_hintTarget()

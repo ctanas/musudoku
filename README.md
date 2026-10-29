@@ -20,6 +20,7 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   explains it on the board, walking through any groundwork it needs first (see
   "Explained hints" below)
 - Highlights for the cursor's row, column and box, and for matching numbers
+- Distraction-free mode, from the pause menu: just the board, centered on the screen
 - Celebrations: completing a row, column, box or all nine of a number makes the
   digits bounce in a ripple with a glow pulse, and solving the puzzle adds a
   board-wide wave and confetti
@@ -88,7 +89,7 @@ to use.
 | X | Switch pen / pencil | Switch pen / pencil |
 | Y | Hint, if turned on in Settings | Erase the cell |
 | L1 / R1 | Undo / redo | Undo / redo |
-| Select | Fill all notes | |
+| Select | Fill all notes, or clear them if there are any | |
 | Start / Menu | Pause menu | Pause menu |
 
 ### Explained hints
@@ -125,6 +126,15 @@ don't count toward best times.
 
 On a PC keyboard: arrows move, Enter/Space is A, Backspace is B, X and Y are X and Y,
 Q/E are L1/R1, Tab is Select, Esc is Start, and 1–9 / 0 enter or erase directly.
+
+### Distraction-free mode
+
+Choose **Distraction-free** in the pause menu to hide the side panel and center the
+board, with nothing else on screen. **Show side panel** in the same menu brings it
+back, and the choice is remembered. The clock keeps running and shows in the pause
+menu, and an explained hint brings the panel back until you close it.
+
+<img src="screenshots/distraction-free.png" alt="Distraction-free mode: only the board, centered" width="49%">
 
 ## Development
 

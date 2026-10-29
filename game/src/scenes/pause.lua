@@ -9,6 +9,11 @@ function Pause.new(app)
     local self = setmetatable({ app = app, t = 0, sel = 1 }, Pause)
     self.items = {
         { label = "Resume", run = function() self:resumeGame() end },
+        { label = app.settings.boardOnly and "Show side panel" or "Distraction-free", run = function()
+            app.settings.boardOnly = not app.settings.boardOnly
+            app.saveSettings()
+            app.pop()
+        end },
         { label = "Restart puzzle", run = function()
             app.push("confirm", {
                 title = "Restart this puzzle?",

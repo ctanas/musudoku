@@ -12,19 +12,22 @@ local Play = {}
 Play.__index = Play
 
 -- Layout (720x480 design canvas)
-local BX, BY, CS = 15, 15, 50  -- board origin and cell size
+local BX, BY, CS = 15, 15, 50  -- board origin and cell size (see Play:layout)
 local BS = CS * 9              -- board size
 local PX, PW = 488, 217        -- side panel
-local PAD_BTN, PAD_GAP, PAD_INSET, PAD_HEAD = 56, 6, 8, 28
+local PAD_BTN, PAD_GAP, PAD_INSET = 56, 6, 8
 local PAD_W = PAD_INSET * 2 + PAD_BTN * 3 + PAD_GAP * 2
-local PAD_H = PAD_INSET * 2 + PAD_HEAD + PAD_BTN * 3 + PAD_GAP * 2
+local PAD_H = PAD_W
 
 local FLASH_TIME = 0.7   -- one cell's flash
 local RING_TIME = 0.65   -- glow pulse around a completed area
 local LIFT = 0.16        -- how far digits bounce during a flash
 local WIN_CARD_AT = 1.7  -- seconds after solving before the result card
 local CONFETTI = { "accent", "user", "given", "boxLine", "note" }
-local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert" }
+local DIFFICULTY_LABELS = { -- side panel header, longest first
+    easy = { "EASY" }, medium = { "MEDIUM", "MED" }, hard = { "HARD" }, expert = { "EXPERT" },
+}
+local HEAD_LABEL, HEAD_CLOCK, HEAD_GAP = 24, 40, 10 -- header sizes and spacing
 
 function Play.new(app)
     local self = setmetatable({ app = app, t = 0 }, Play)
@@ -44,6 +47,20 @@ end
 
 function Play:cellPos(i)
     return BX + COL[i] * CS, BY + ROW[i] * CS
+end
+
+-- Distraction-free mode hides the side panel and centers the board. An open
+-- explained hint brings the panel back, since the hint card lives there.
+function Play:panelShown()
+    return not self.app.settings.boardOnly or self.hint ~= nil
+end
+
+function Play:layout()
+    local bx = self:panelShown() and 15 or (ui.W - BS) / 2
+    if bx ~= BX then
+        self.vx = self.vx + bx - BX -- the cursor moves with the board
+        BX = bx
+    end
 end
 
 function Play:resume()
@@ -395,7 +412,7 @@ function Play:action(a)
         end
     elseif a == "l1" then self:history("undo")
     elseif a == "r1" then self:history("redo")
-    elseif a == "select" then self:react(g:fillNotes(), g.cursor)
+    elseif a == "select" then self:react(g:toggleNotes(), g.cursor)
     elseif digit then self:applyDigit(tonumber(digit))
     end
 end
@@ -404,6 +421,7 @@ end
 
 function Play:update(dt)
     self.t = self.t + dt
+    self:layout()
     local g = self.game
     if not g.solved and self.app.focused then
         g.elapsed = g.elapsed + dt
@@ -447,7 +465,7 @@ function Play:update(dt)
     local second = math.floor(g.elapsed)
     if second ~= self.lastSecond then
         self.lastSecond = second
-        if self.app.settings.timer then self.app.requestRedraw() end
+        if self.app.settings.timer and self:panelShown() then self.app.requestRedraw() end
     end
 
     if self.winT then
@@ -700,26 +718,30 @@ function Play:drawPad()
     local cell = g.cursor
     local notes = g.notes[cell]
 
-    love.graphics.push()
-    love.graphics.translate(x + PAD_W / 2, y + PAD_H / 2)
-    love.graphics.scale(0.92 + 0.08 * p)
-    love.graphics.translate(-PAD_W / 2, -PAD_H / 2)
+    -- The pad grows from its center as it opens. Shapes are scaled, but the
+    -- digits are only moved, never scaled, so ui.centered can keep them on
+    -- whole screen pixels and they stay sharp.
+    local grow = 0.92 + 0.08 * p
+    local function at(lx, ly)
+        return x + PAD_W / 2 + (lx - PAD_W / 2) * grow, y + PAD_H / 2 + (ly - PAD_H / 2) * grow
+    end
+    local function box(mode, lx, ly, w, h, r)
+        local bx, by = at(lx, ly)
+        ui.rect(mode, bx, by, w * grow, h * grow, r * grow)
+    end
 
     theme.set("scrim", 0.35 * p)
-    ui.rect("fill", 2, 4, PAD_W, PAD_H, 12)
+    box("fill", 2, 4, PAD_W, PAD_H, 12)
     theme.set("bg", p)
-    ui.rect("fill", 0, 0, PAD_W, PAD_H, 12)
+    box("fill", 0, 0, PAD_W, PAD_H, 12)
     theme.set("boxLine", p)
     love.graphics.setLineWidth(2)
-    ui.rect("line", 0, 0, PAD_W, PAD_H, 12)
-
-    theme.set("text", p)
-    ui.centered(pencil and "Toggle a note" or "Enter a number", PAD_INSET + 4, PAD_INSET + PAD_HEAD / 2 - 1, 15, "bold", "left")
+    box("line", 0, 0, PAD_W, PAD_H, 12)
 
     for d = 1, 9 do
         local r, c = math.floor((d - 1) / 3), (d - 1) % 3
         local bx = PAD_INSET + c * (PAD_BTN + PAD_GAP)
-        local by = PAD_INSET + PAD_HEAD + r * (PAD_BTN + PAD_GAP)
+        local by = PAD_INSET + r * (PAD_BTN + PAD_GAP)
         local selected = (d == pad.sel)
         local noted = pencil and band(notes, DIGIT_BIT[d]) ~= 0
         local done = counts[d] >= 9
@@ -727,47 +749,66 @@ function Play:drawPad()
         if selected then theme.set("accent", p)
         elseif noted then theme.set("same", p)
         else theme.set("panel", p) end
-        ui.rect("fill", bx, by, PAD_BTN, PAD_BTN, 8)
+        box("fill", bx, by, PAD_BTN, PAD_BTN, 8)
 
         if not selected and not pencil and g.values[cell] == d then
             theme.set("accent", p)
             love.graphics.setLineWidth(2)
-            ui.rect("line", bx + 1, by + 1, PAD_BTN - 2, PAD_BTN - 2, 8)
+            box("line", bx + 1, by + 1, PAD_BTN - 2, PAD_BTN - 2, 8)
         end
 
         local alpha = p * ((done and not selected) and 0.4 or 1)
         theme.set(selected and "accentText" or "text", alpha)
         if pencil then
             -- show the digit where its note would sit in the cell
-            local nx = bx + 13 + c * 15
-            local ny = by + 13 + r * 15
+            local nx, ny = at(bx + 13 + c * 15, by + 13 + r * 15)
             if not selected and not noted then theme.set("note", alpha) end
             ui.centered(tostring(d), nx, ny, 20, "bold", "center")
         else
-            ui.centered(tostring(d), bx + PAD_BTN / 2, by + PAD_BTN / 2, 28, "bold", "center")
+            local tx, ty = at(bx + PAD_BTN / 2, by + PAD_BTN / 2)
+            ui.centered(tostring(d), tx, ty, 28, "bold", "center")
         end
     end
-
-    love.graphics.pop()
 end
 
 -- Drawing: side panel ---------------------------------------------------------
 
+-- The side panel clock: 134 -> "02:14", an hour or more -> "1:02:14".
+local function clock(seconds)
+    seconds = math.floor(seconds)
+    if seconds >= 3600 then return ui.formatTime(seconds) end
+    return string.format("%02d:%02d", math.floor(seconds / 60), seconds % 60)
+end
+
+-- Difficulty and clock share the top row, on one baseline. The first label
+-- that fits is used (MEDIUM, then MED); only if none fits does the row shrink.
+function Play:drawHeader(x, base)
+    local g = self.game
+    local prefix = g.pack and ("#" .. ui.number(g.pack.index) .. " ") or ""
+    local time = self.app.settings.timer and clock(g.elapsed)
+    -- measured with its widest digits, so the label doesn't change as it ticks
+    local clockW = time and HEAD_GAP + ui.width((time:gsub("%d", "0")), HEAD_CLOCK, "bold") or 0
+    local label, rowW
+    for _, name in ipairs(DIFFICULTY_LABELS[g.difficulty] or { "" }) do
+        label = prefix .. name
+        rowW = ui.width(label, HEAD_LABEL, "bold") + clockW
+        if rowW <= PW then break end
+    end
+    local k = math.min(1, (PW - 2) / rowW)
+    theme.set("muted")
+    local w = ui.onBaseline(label, x, base, HEAD_LABEL * k, "bold", "left")
+    if time then
+        theme.set("text")
+        ui.onBaseline(time, x + w + HEAD_GAP * k, base, HEAD_CLOCK * k, "bold", "left")
+    end
+end
+
 function Play:drawPanel()
     local g, settings = self.game, self.app.settings
-    local x, y = PX, 18
+    local x = PX
 
-    theme.set("muted")
-    local label = DIFFICULTY_NAMES[g.difficulty] or ""
-    if g.pack then label = "Puzzle " .. ui.number(g.pack.index) .. ", " .. label end
-    ui.centered(label, x, y + 10, 18, "bold", "left")
-    y = y + 26
-
-    if settings.timer then
-        theme.set("text")
-        ui.centered(ui.formatTime(g.elapsed), x - 2, y + 24, 46, "bold", "left")
-        y = y + 54
-    end
+    self:drawHeader(x, 46)
+    local y = 58
 
     -- progress through the board
     local filled = g:filledCount()
@@ -779,9 +820,9 @@ function Play:drawPanel()
 
     local function counter(label, value, cx)
         theme.set("muted")
-        local w = ui.centered(label, cx, y, 17, "regular", "left")
+        local w = ui.centered(label, cx, y, 19, "regular", "left")
         theme.set("text")
-        ui.centered(tostring(value), cx + w + 6, y, 17, "bold", "left")
+        ui.centered(tostring(value), cx + w + 6, y, 19, "bold", "left")
     end
     -- the hint count shows if hints are on, or were used earlier in this puzzle
     local showHints = settings.hints ~= "off" or g.hints > 0
@@ -791,12 +832,12 @@ function Play:drawPanel()
     elseif showHints then
         counter("Hints", g.hints, x)
     end
-    y = y + 22
+    y = y + 18
 
     -- pen / pencil switch
     local half = PW / 2
     theme.set("panel")
-    ui.rect("fill", x, y, PW, 34, 8)
+    ui.rect("fill", x, y, PW, 38, 8)
     local pencil = g.mode == "pencil"
     local slide = 1
     if self.modeT then slide = ui.ease((self.t - self.modeT) / 0.16) end
@@ -804,25 +845,32 @@ function Play:drawPanel()
     local to = pencil and half or 0
     local sx = from + (to - from) * slide
     theme.set("accent")
-    ui.rect("fill", x + sx + 3, y + 3, half - 6, 28, 6)
+    ui.rect("fill", x + sx + 3, y + 3, half - 6, 32, 6)
     theme.set(pencil and "muted" or "accentText")
-    ui.centered("Pen", x + half / 2, y + 17, 18, "bold", "center")
+    ui.centered("Pen", x + half / 2, y + 19, 20, "bold", "center")
     theme.set(pencil and "accentText" or "muted")
-    ui.centered("Pencil", x + half + half / 2, y + 17, 18, "bold", "center")
-    y = y + 48
+    ui.centered("Pencil", x + half + half / 2, y + 19, 20, "bold", "center")
+    y = y + 52
 
     if self.hint then
         self:drawHintCard(x, y)
         return
     end
 
-    -- remaining digits
+    -- remaining digits: each tile has a 3x3 map of the board's boxes, and a
+    -- box's dot lights up once it holds that digit
     local counts = g:digitCounts()
+    local inBox = {}
+    for d = 1, 9 do inBox[d] = {} end
+    for i = 1, 81 do
+        local v = g.values[i]
+        if v ~= 0 then inBox[v][BOX[i]] = true end
+    end
     local match = self.pad and self.pad.sel or (settings.matching and g.values[g.cursor] or 0)
-    local tw, th, gap = 68, 38, 6
+    local tw, th, gap = 68, 54, 6
     for d = 1, 9 do
         local r, c = math.floor((d - 1) / 3), (d - 1) % 3
-        local tx, ty = x + c * (tw + gap), y + r * (th + 7)
+        local tx, ty = x + c * (tw + gap), y + r * (th + 8)
         local left = 9 - counts[d]
         theme.set("panel")
         ui.rect("fill", tx, ty, tw, th, 7)
@@ -839,18 +887,24 @@ function Play:drawPanel()
         end
         local alpha = (left <= 0) and 0.4 or 1
         theme.set("text", alpha)
-        ui.centered(tostring(d), tx + 13, ty + th / 2, 22, "bold", "center")
-        theme.set("muted", alpha)
+        ui.centered(tostring(d), tx + 17, ty + th / 2, 28, "bold", "center")
         if left <= 0 then
-            love.graphics.setLineWidth(2.5)
-            local cx, cy = tx + tw - 20, ty + th / 2
-            love.graphics.line(cx - 7, cy, cx - 2, cy + 5, cx + 8, cy - 6)
+            theme.set("muted", alpha)
+            love.graphics.setLineWidth(3)
+            local cx, cy = tx + tw - 22, ty + th / 2
+            love.graphics.line(cx - 8, cy, cx - 2, cy + 6, cx + 9, cy - 7)
         else
-            ui.centered(left .. " left", tx + tw - 7, ty + th / 2 + 1, 14, "regular", "right")
+            local dot, step = 7, 10
+            local mx, my = tx + tw - 9 - 2 * step - dot, ty + math.floor((th - 2 * step - dot) / 2)
+            for b = 0, 8 do
+                theme.set(inBox[d][b] and "text" or "line")
+                ui.rect("fill", mx + (b % 3) * step, my + math.floor(b / 3) * step, dot, dot, 2)
+            end
         end
     end
 
-    -- controls for the current context
+    -- controls for the current context: only the face and shoulder buttons,
+    -- at most three rows of two (Select and Start are in the README)
     local rows
     if self.pad then
         rows = {
@@ -863,14 +917,13 @@ function Play:drawPanel()
             { { "A", "Enter" }, { "B", "Erase" } },
             { { "X", pencil and "Pen" or "Pencil" }, settings.hints ~= "off" and { "Y", "Hint" } or nil },
             { { "L1", "Undo" }, { "R1", "Redo" } },
-            { { "Select", "Notes" }, { "Start", "Menu" } },
         }
     end
-    local hy = 465 - (#rows - 1) * 28
+    local hy = 462 - (#rows - 1) * 32
     for k, row in ipairs(rows) do
-        local cy = hy + (k - 1) * 28
-        ui.hints({ row[1] }, x, cy, "left", nil, 17)
-        if row[2] then ui.hints({ row[2] }, x + 116, cy, "left", nil, 17) end
+        local cy = hy + (k - 1) * 32
+        ui.hints({ row[1] }, x, cy, "left", nil, 20, 1.2)
+        if row[2] then ui.hints({ row[2] }, x + 116, cy, "left", nil, 20, 1.2) end
     end
 end
 
@@ -897,17 +950,17 @@ function Play:drawHintCard(x, top)
     local ix, iw = x + 12, PW - 24
     local y = top + 12
     theme.set("accent")
-    ui.text("Hint", ix, y, 13, "bold")
+    ui.text("Hint", ix, y, 15, "bold")
     if #h.steps > 1 then
         theme.set("muted")
-        ui.text("Step " .. h.index .. " of " .. #h.steps, ix, y, 13, "regular", "right", iw)
+        ui.text("Step " .. h.index .. " of " .. #h.steps, ix, y, 15, "regular", "right", iw)
     end
-    y = y + 22
+    y = y + 24
     theme.set(step.mistake and "error" or "text")
-    ui.text(step.title, ix, y, 19, "bold", "left", iw)
-    y = y + ui.wrapHeight(step.title, 19, "bold", iw) + 6
+    ui.text(step.title, ix, y, 21, "bold", "left", iw)
+    y = y + ui.wrapHeight(step.title, 21, "bold", iw) + 6
     theme.set("text", 0.88)
-    ui.text(step.text, ix, y, 15, "regular", "left", iw)
+    ui.text(step.text, ix, y, 17, "regular", "left", iw)
 
     local rows = { { { "A", self:hintActionLabel(step) } } }
     local nav = {}
@@ -916,16 +969,16 @@ function Play:drawHintCard(x, top)
     if #nav > 0 then rows[#rows + 1] = nav end
     rows[#rows + 1] = { { "B", "Close" } }
     for k = #rows, 1, -1 do
-        local cy = bottom - 16 - (#rows - k) * 26
+        local cy = bottom - 18 - (#rows - k) * 28
         local row = rows[k]
-        ui.hints({ row[1] }, ix, cy, "left")
-        if row[2] then ui.hints({ row[2] }, ix + 104, cy, "left") end
+        ui.hints({ row[1] }, ix, cy, "left", nil, 17, 1.1)
+        if row[2] then ui.hints({ row[2] }, ix + 104, cy, "left", nil, 17, 1.1) end
     end
 end
 
 function Play:draw()
     self:drawBoard()
-    self:drawPanel()
+    if self:panelShown() then self:drawPanel() end
     self:drawPad()
     self:drawConfetti()
 end

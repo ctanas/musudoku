@@ -89,44 +89,54 @@ function ui.centered(str, x, cy, size, weight, align)
     return w
 end
 
+-- Like ui.centered, but the text sits on baseline y, so text in different
+-- sizes lines up.
+function ui.onBaseline(str, x, y, size, weight, align)
+    return ui.centered(str, x, y - size * CAP_HEIGHT / 2, size, weight, align)
+end
+
 -- Controller button glyphs ---------------------------------------------------
+-- k scales a glyph (default 1).
 
 local ROUND = { A = true, B = true, X = true, Y = true }
 
-function ui.glyphWidth(label)
-    if ROUND[label] then return 20 end
-    return ui.width(label, 11, "bold") + 14
+function ui.glyphWidth(label, k)
+    k = k or 1
+    if ROUND[label] then return 20 * k end
+    return ui.width(label, 11 * k, "bold") + 14 * k
 end
 
 -- Draws a button glyph with its left edge at x, centered on cy. Returns width.
-function ui.glyph(label, x, cy, alpha)
-    local w = ui.glyphWidth(label)
+function ui.glyph(label, x, cy, alpha, k)
+    k = k or 1
+    local w = ui.glyphWidth(label, k)
     theme.set("chip", alpha)
     if ROUND[label] then
-        love.graphics.circle("fill", x + 10, cy, 10)
+        love.graphics.circle("fill", x + w / 2, cy, w / 2)
         theme.set("chipText", alpha)
-        ui.centered(label, x + 10, cy, 12, "bold", "center")
+        ui.centered(label, x + w / 2, cy, 12 * k, "bold", "center")
     else
-        love.graphics.rectangle("fill", x, cy - 9, w, 18, 9, 9)
+        local h = 18 * k
+        love.graphics.rectangle("fill", x, cy - h / 2, w, h, h / 2, h / 2)
         theme.set("chipText", alpha)
-        ui.centered(label, x + w / 2, cy, 11, "bold", "center")
+        ui.centered(label, x + w / 2, cy, 11 * k, "bold", "center")
     end
     return w
 end
 
 -- A row of {button, label} pairs. align "left" starts at x, "right" ends at x.
--- size is the label size (default 15).
-function ui.hints(list, x, cy, align, alpha, size)
+-- size is the label size (default 15), k the glyph scale (default 1).
+function ui.hints(list, x, cy, align, alpha, size, k)
     size = size or 15
-    local gap, inner = 18, 6
+    local gap, inner = 18, 6 * (k or 1)
     local total = 0
-    for k, item in ipairs(list) do
-        total = total + ui.glyphWidth(item[1]) + inner + ui.width(item[2], size)
-        if k < #list then total = total + gap end
+    for n, item in ipairs(list) do
+        total = total + ui.glyphWidth(item[1], k) + inner + ui.width(item[2], size)
+        if n < #list then total = total + gap end
     end
     local cx = (align == "right") and (x - total) or (align == "center" and x - total / 2 or x)
     for _, item in ipairs(list) do
-        cx = cx + ui.glyph(item[1], cx, cy, alpha) + inner
+        cx = cx + ui.glyph(item[1], cx, cy, alpha, k) + inner
         theme.set("muted", alpha)
         cx = cx + ui.centered(item[2], cx, cy, size, "regular", "left") + gap
     end
