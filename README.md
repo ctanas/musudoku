@@ -265,9 +265,9 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
 ### The LÖVE runtime
 
 muOS doesn't include LÖVE, so the muxapp bundles an aarch64 build of LÖVE 11.5
-(`bin/love` and `bin/libs.aarch64/`). `build.sh` takes it from
-[2048 Plus](https://github.com/saitamasahil/2048plus) (MIT licensed) at a pinned
-tag, because that runtime is known to work on muOS H700 devices. To use a different
+(`bin/love` and `bin/libs.aarch64/`). `build.sh` downloads a prebuilt runtime by
+saitamasahil (MIT licensed) at a pinned tag, because it's known to work on muOS H700
+devices. To use a different
 runtime, set `LOVE_RUNTIME=/path/to/dir` containing `love` and `libs.aarch64/`.
 That bundle includes libraries the game doesn't need, so a trimmed runtime would
 make the package much smaller.
@@ -280,7 +280,7 @@ in the game.
 - Game code: MIT (see `LICENSE`)
 - Atkinson Hyperlegible font by the Braille Institute: SIL Open Font License
 - LÖVE: zlib license
-- Launcher structure and aarch64 runtime: 2048 Plus by saitamasahil (MIT)
+- aarch64 LÖVE runtime and launcher structure: saitamasahil (MIT)
 - Dancing Links generator: Donald Knuth's Algorithm X
 - Theme colors: Solarized by Ethan Schoonover, Nord by Arctic Ice Studio and Gruvbox
   by Pavel Pertsev (all MIT)

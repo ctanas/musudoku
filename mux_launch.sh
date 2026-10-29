@@ -4,8 +4,7 @@
 # GRID: muSudoku
 
 # muOS (MustardOS) application launcher for muSudoku.
-# Structure follows the muOS application runner conventions and the
-# proven LÖVE setup used by 2048 Plus (github.com/saitamasahil/2048plus).
+# Structure follows the muOS application runner conventions.
 
 . /opt/muos/script/var/func.sh
 

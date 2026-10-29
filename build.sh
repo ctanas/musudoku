@@ -7,8 +7,8 @@
 #   ./build.sh run      run the game on this PC (needs love 11.5)
 #
 # The muxapp bundles an aarch64 LÖVE 11.5 runtime (bin/love + bin/libs.aarch64).
-# By default it is taken from the 2048 Plus project (MIT licensed, already
-# proven on muOS H700 devices) at a pinned tag. To use your own runtime, set
+# By default a prebuilt runtime (MIT licensed, proven on muOS H700 devices) is
+# downloaded at a pinned tag. To use your own runtime, set
 # LOVE_RUNTIME=/path/to/dir containing love and libs.aarch64/.
 set -euo pipefail
 
@@ -68,7 +68,7 @@ build_muos() {
     cp "$ROOT/game/assets/fonts/OFL.txt" "$app/.game/licenses/AtkinsonHyperlegible.OFL.txt"
     if [ -n "${RUNTIME_LICENSES:-}" ] && [ -f "$RUNTIME_LICENSES/love.LICENSE" ]; then
         cp "$RUNTIME_LICENSES/love.LICENSE" "$app/.game/licenses/love.LICENSE"
-        cp "$RUNTIME_LICENSES/2048plus.LICENSE" "$app/.game/licenses/runtime-from-2048plus.LICENSE" 2>/dev/null || true
+        cp "$RUNTIME_LICENSES/2048plus.LICENSE" "$app/.game/licenses/runtime.LICENSE" 2>/dev/null || true
     fi
 
     chmod +x "$app/mux_launch.sh" "$app/.game/bin/love"
