@@ -20,7 +20,7 @@ function Generating.new(app, difficulty)
             if love.timer.getTime() - frameStart > FRAME_BUDGET then
                 coroutine.yield()
             end
-        end)
+        end, app.settings.generator)
     end)
     self.beginFrame = function() frameStart = love.timer.getTime() end
     return self
@@ -71,7 +71,8 @@ function Generating:draw()
     theme.set("text")
     ui.text("Building " .. NAMES[self.difficulty] .. " puzzle", 0, 262, 26, "bold", "center", ui.W)
     theme.set("muted")
-    ui.text("Every puzzle has exactly one solution.", 0, 302, 16, "regular", "center", ui.W)
+    local method = self.app.settings.generator == "dlx" and "Dancing Links" or "Classic"
+    ui.text(method .. " generator. Every puzzle has exactly one solution.", 0, 302, 16, "regular", "center", ui.W)
 
     ui.hints({ { "B", "Cancel" } }, 696, 452, "right")
 end

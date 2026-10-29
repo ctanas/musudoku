@@ -71,8 +71,17 @@ local DEFS = {
     end,
 }
 
+-- Builds the sounds the first time it's called. conf.lua leaves the audio
+-- modules out when sound effects were off at launch (their mixer runs even
+-- when silent), so they're loaded here if sound is turned on later.
+local loaded = false
+
 function sound.load()
+    if loaded then return end
+    loaded = true
     local ok = pcall(function()
+        if not love.audio then require("love.audio") end
+        if not love.sound then require("love.sound") end
         for name, make in pairs(DEFS) do
             sources[name] = love.audio.newSource(make(), "static")
         end

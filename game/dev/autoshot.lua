@@ -100,13 +100,13 @@ function M.start(app)
         end,
         function() shot("13_paper") end,
         function()
-            app.settings.theme = "walnut"
+            app.settings.theme = "chalkboard"
             app.applySettings()
             app.game.cursor = firstEmpty(30)
             press("a")
             return 0.4
         end,
-        function() shot("14_walnut_pad") end,
+        function() shot("14_chalkboard_pad") end,
         function()
             app.settings.theme = "cyanotype"
             app.settings.timer = false

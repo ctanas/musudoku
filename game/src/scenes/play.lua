@@ -512,6 +512,7 @@ function Play:drawBoard()
         match = g.values[cur]
     end
 
+    theme.frame(BX, BY, BS, BS)
     theme.set("board")
     ui.rect("fill", BX, BY, BS, BS, 8)
 
@@ -553,6 +554,7 @@ function Play:drawBoard()
             end
         end
     end
+    theme.texture(BX, BY, BS, BS) -- under the lines and digits, so they stay crisp
     love.graphics.setStencilTest()
 
     -- grid lines
@@ -624,13 +626,13 @@ function Play:drawBoard()
                         love.graphics.setLineWidth(1.5)
                         love.graphics.line(nx - 6, ny + 6, nx + 6, ny - 6)
                     else
-                        theme.set("accent")
+                        theme.set("mark")
                         ui.centered(tostring(d), nx, ny, 14, "bold", "center")
                     end
                 end
             end
             if hint and hint.action == "place" and i == hint.target then
-                theme.set("accent", 0.55)
+                theme.set("mark", 0.55)
                 ui.centered(tostring(hint.digit), x + CS / 2, y + CS / 2, 32, "regular", "center")
                 notes = 0
             end
@@ -639,7 +641,7 @@ function Play:drawBoard()
                     if band(notes, DIGIT_BIT[d]) ~= 0 and not (marked and marked[d]) then
                         local nx, ny = notePos(x, y, d)
                         if d == match and settings.matching then
-                            theme.set("accent")
+                            theme.set("mark")
                             ui.centered(tostring(d), nx, ny, 14, "bold", "center")
                         else
                             theme.set("note")
@@ -652,7 +654,7 @@ function Play:drawBoard()
     end
 
     if hint then
-        theme.set("accent", 0.9)
+        theme.set("mark", 0.9)
         love.graphics.setLineWidth(2)
         for i in pairs(hint.blockers) do
             local x, y = self:cellPos(i)
@@ -660,7 +662,7 @@ function Play:drawBoard()
         end
         if hint.target then
             local x, y = self:cellPos(hint.target)
-            theme.set(hint.mistake and "error" or "accent")
+            theme.set(hint.mistake and "error" or "mark")
             love.graphics.setLineWidth(3)
             ui.rect("line", x + 3, y + 3, CS - 6, CS - 6, 6)
         end
@@ -685,7 +687,7 @@ function Play:drawBoard()
     if not self.winT and not hint then
         local dx = 0
         if self.shake > 0 then dx = math.sin(self.shake * 70) * 4 * (self.shake / 0.25) end
-        theme.set("accent")
+        theme.set("mark")
         love.graphics.setLineWidth(3)
         ui.rect("line", self.vx + 3 + dx, self.vy + 3, CS - 6, CS - 6, 6)
     end
@@ -734,6 +736,8 @@ function Play:drawPad()
     box("fill", 2, 4, PAD_W, PAD_H, 12)
     theme.set("bg", p)
     box("fill", 0, 0, PAD_W, PAD_H, 12)
+    local px, py = at(0, 0)
+    theme.texture(px, py, PAD_W * grow, PAD_H * grow, p, 12 * grow)
     theme.set("boxLine", p)
     love.graphics.setLineWidth(2)
     box("line", 0, 0, PAD_W, PAD_H, 12)
@@ -752,7 +756,7 @@ function Play:drawPad()
         box("fill", bx, by, PAD_BTN, PAD_BTN, 8)
 
         if not selected and not pencil and g.values[cell] == d then
-            theme.set("accent", p)
+            theme.set("mark", p)
             love.graphics.setLineWidth(2)
             box("line", bx + 1, by + 1, PAD_BTN - 2, PAD_BTN - 2, 8)
         end
@@ -766,7 +770,7 @@ function Play:drawPad()
             ui.centered(tostring(d), nx, ny, 20, "bold", "center")
         else
             local tx, ty = at(bx + PAD_BTN / 2, by + PAD_BTN / 2)
-            ui.centered(tostring(d), tx, ty, 28, "bold", "center")
+            ui.centered(tostring(d), tx, ty, 32, "regular", "center") -- like the board's digits
         end
     end
 end
@@ -780,8 +784,9 @@ local function clock(seconds)
     return string.format("%02d:%02d", math.floor(seconds / 60), seconds % 60)
 end
 
--- Difficulty and clock share the top row, on one baseline. The first label
--- that fits is used (MEDIUM, then MED); only if none fits does the row shrink.
+-- Difficulty (left) and clock (right) share the top row, on one baseline. The
+-- first label that fits is used (MEDIUM, then MED); only if none fits does the
+-- row shrink.
 function Play:drawHeader(x, base)
     local g = self.game
     local prefix = g.pack and ("#" .. ui.number(g.pack.index) .. " ") or ""
@@ -796,10 +801,10 @@ function Play:drawHeader(x, base)
     end
     local k = math.min(1, (PW - 2) / rowW)
     theme.set("muted")
-    local w = ui.onBaseline(label, x, base, HEAD_LABEL * k, "bold", "left")
+    ui.onBaseline(label, x, base, HEAD_LABEL * k, "bold", "left")
     if time then
         theme.set("text")
-        ui.onBaseline(time, x + w + HEAD_GAP * k, base, HEAD_CLOCK * k, "bold", "left")
+        ui.onBaseline(time, x + PW, base, HEAD_CLOCK * k, "bold", "right")
     end
 end
 
@@ -881,7 +886,7 @@ function Play:drawPanel()
             ui.rect("fill", tx, ty, tw, th, 7)
         end
         if d == match then
-            theme.set("accent")
+            theme.set("mark")
             love.graphics.setLineWidth(2)
             ui.rect("line", tx + 1, ty + 1, tw - 2, th - 2, 7)
         end
@@ -919,12 +924,7 @@ function Play:drawPanel()
             { { "L1", "Undo" }, { "R1", "Redo" } },
         }
     end
-    local hy = 462 - (#rows - 1) * 32
-    for k, row in ipairs(rows) do
-        local cy = hy + (k - 1) * 32
-        ui.hints({ row[1] }, x, cy, "left", nil, 20, 1.2)
-        if row[2] then ui.hints({ row[2] }, x + 116, cy, "left", nil, 20, 1.2) end
-    end
+    ui.legend(rows, { x, x + 116 }, 462 - (#rows - 1) * 32, 32, nil, 20, 1.2)
 end
 
 function Play:drawConfetti()
@@ -949,7 +949,7 @@ function Play:drawHintCard(x, top)
 
     local ix, iw = x + 12, PW - 24
     local y = top + 12
-    theme.set("accent")
+    theme.set("mark")
     ui.text("Hint", ix, y, 15, "bold")
     if #h.steps > 1 then
         theme.set("muted")
@@ -968,12 +968,7 @@ function Play:drawHintCard(x, top)
     if h.index > 1 then nav[#nav + 1] = { "L1", "Back" } end
     if #nav > 0 then rows[#rows + 1] = nav end
     rows[#rows + 1] = { { "B", "Close" } }
-    for k = #rows, 1, -1 do
-        local cy = bottom - 18 - (#rows - k) * 28
-        local row = rows[k]
-        ui.hints({ row[1] }, ix, cy, "left", nil, 17, 1.1)
-        if row[2] then ui.hints({ row[2] }, ix + 104, cy, "left", nil, 17, 1.1) end
-    end
+    ui.legend(rows, { ix, ix + 104 }, bottom - 18 - (#rows - 1) * 28, 28, nil, 17, 1.1)
 end
 
 function Play:draw()

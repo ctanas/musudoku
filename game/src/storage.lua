@@ -1,6 +1,8 @@
 -- Saves settings, statistics and the puzzle in progress with love.filesystem.
 -- Files are plain Lua table literals, loaded in an empty sandbox.
 
+local theme = require("src.theme")
+
 local storage = {}
 
 local SETTINGS_FILE, STATS_FILE, GAME_FILE = "settings.lua", "stats.lua", "game.lua"
@@ -99,12 +101,15 @@ storage.DEFAULT_SETTINGS = {
     sound = true,
     hints = "off", -- "off" | "explained" | "instant"
     boardOnly = false, -- distraction-free: just the board, centered
+    generator = "classic", -- "classic" | "dlx" (Dancing Links)
 }
 
 local CHOICES = {
     hints = { off = true, explained = true, instant = true },
-    theme = { cyanotype = true, paper = true, walnut = true },
+    theme = {},
+    generator = { classic = true, dlx = true },
 }
+for _, key in ipairs(theme.ORDER) do CHOICES.theme[key] = true end
 
 function storage.loadSettings()
     local saved = read(SETTINGS_FILE) or {}

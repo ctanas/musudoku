@@ -55,7 +55,7 @@ function Win:draw()
     theme.set("text", p)
     ui.text("Solved", x + 32, y + 48, 38, "bold")
 
-    theme.set("accent", p)
+    theme.set("mark", p)
     ui.centered(ui.formatTime(g.elapsed), x + w - 32, y + 72, 38, "bold", "right")
 
     local stats = self.app.stats[g.difficulty]
@@ -88,7 +88,7 @@ function Win:draw()
 
     local ly = y + 126
     for _, line in ipairs(lines) do
-        theme.set(line[2] and "accent" or "text", p)
+        theme.set(line[2] and "mark" or "text", p)
         ui.text(line[1], x + 32, ly, line[3] or 18, line[2] and "bold" or "regular")
         ly = ly + (line[3] and 22 or 28)
     end

@@ -412,14 +412,18 @@ M.SPECS = {
 }
 
 -- `yield` (optional) is called after every uniqueness check so a caller can
--- spread the work over several frames with coroutines.
-function M.generate(difficulty, rng, yield)
+-- spread the work over several frames with coroutines. `method` picks the
+-- solver that makes the full grid and checks uniqueness: "classic" (the
+-- backtracking solver above, the default) or "dlx" (Knuth's Algorithm X with
+-- dancing links, in dlx.lua). Digging and grading are the same for both.
+function M.generate(difficulty, rng, yield, method)
     rng = rng or defaultRng
+    local solver = (method == "dlx") and require("src.dlx") or M
     local spec = M.SPECS[difficulty] or M.SPECS.medium
     local best, bestScore
 
     for _ = 1, spec.attempts do
-        local solution = M.randomSolution(rng)
+        local solution = solver.randomSolution(rng)
         local puzzle = copy(solution)
 
         local order = {}
@@ -434,7 +438,7 @@ function M.generate(difficulty, rng, yield)
                 pos = pos + 1
                 local a, b = puzzle[i], puzzle[j]
                 puzzle[i], puzzle[j] = 0, 0
-                if M.countSolutions(puzzle, 2) == 1 then
+                if solver.countSolutions(puzzle, 2) == 1 then
                     clues = clues - ((i == j) and 1 or 2)
                 else
                     puzzle[i], puzzle[j] = a, b

@@ -198,7 +198,7 @@ function Pack:draw()
         if k == 3 then
             local label = ui.number(self.choice)
             if p.solved[self.choice] then label = label .. ", solved" end
-            theme.set(selected and "accent" or "text")
+            theme.set(selected and "mark" or "text")
             local vw = ui.centered(label, x + w - 22, cy, 20, "bold", "right")
             if selected then
                 theme.set("muted")

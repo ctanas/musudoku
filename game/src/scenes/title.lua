@@ -126,7 +126,7 @@ function Title:drawBox()
     love.graphics.setLineWidth(3)
     ui.rect("line", BOX_X, BOX_Y, size, size, 10)
 
-    theme.set("accent")
+    theme.set("mark")
     love.graphics.setLineWidth(3)
     ui.rect("line", cx + 3, cy + 3, CELL - 6, CELL - 6, 6)
 end

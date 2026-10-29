@@ -142,6 +142,28 @@ function ui.hints(list, x, cy, align, alpha, size, k)
     end
 end
 
+-- A grid of {button, label} pairs: rows[r] = { left, right (optional) },
+-- cols = the x of each column, the first row centered on cy. In each column
+-- every glyph is centered in a slot as wide as the column's widest glyph, so
+-- glyphs and labels line up down the column. size and k as in ui.hints.
+function ui.legend(rows, cols, cy, step, alpha, size, k)
+    local slots = {}
+    for _, row in ipairs(rows) do
+        for c, item in ipairs(row) do
+            slots[c] = math.max(slots[c] or 0, math.ceil(ui.glyphWidth(item[1], k)))
+        end
+    end
+    for r, row in ipairs(rows) do
+        local y = cy + (r - 1) * step
+        for c, item in ipairs(row) do
+            local offset = math.floor((slots[c] - ui.glyphWidth(item[1], k)) / 2 + 0.5)
+            ui.glyph(item[1], cols[c] + offset, y, alpha, k)
+            theme.set("muted", alpha)
+            ui.centered(item[2], cols[c] + slots[c] + 6 * (k or 1), y, size or 15, "regular", "left")
+        end
+    end
+end
+
 -- Shapes ---------------------------------------------------------------------
 
 function ui.rect(mode, x, y, w, h, r)
@@ -156,6 +178,7 @@ function ui.card(w, h, p)
     local x, y = (ui.W - w) / 2, (ui.H - h) / 2 + (1 - p) * 12
     theme.set("bg", p)
     ui.rect("fill", x, y, w, h, 14)
+    theme.texture(x, y, w, h, p, 14)
     theme.set("boxLine", 0.6 * p)
     love.graphics.setLineWidth(2)
     ui.rect("line", x, y, w, h, 14)

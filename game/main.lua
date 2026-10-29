@@ -157,6 +157,7 @@ end
 function app.applySettings()
     theme.use(app.settings.theme)
     sound.enabled = app.settings.sound
+    if sound.enabled then sound.load() end -- loads the audio modules on first use
 end
 
 function app.hasGame()
@@ -213,14 +214,16 @@ end
 
 -- Idle rendering -------------------------------------------------------------
 -- A puzzle game spends most of its time showing a still picture, so the
--- screen is only redrawn when something changed: after input (plus a short
--- window for menu and pad animations), while the top scene reports busy(),
--- or when a scene asks via app.requestRedraw() (the timer does, once a
--- second). Otherwise the loop sleeps and checks for input 60 times a second,
--- so buttons respond as quickly as before.
+-- screen is only redrawn when something changed: briefly after input, while
+-- the top scene reports busy() (every animation does), or when a scene asks
+-- via app.requestRedraw() (the timer does, once a second). Otherwise the
+-- loop sleeps and checks for input 60 times a second, or 30 once nothing
+-- has been pressed for a few seconds.
 
-local AFTER_INPUT = 0.45   -- keep drawing this long after any input
+local AFTER_INPUT = 0.1    -- keep drawing this long after any input
 local IDLE_SLEEP = 1 / 60  -- how often to check for input while idle
+local QUIET_SLEEP = 1 / 30 -- ...and once nothing was pressed for QUIET_AFTER
+local QUIET_AFTER = 2
 
 function app.requestRedraw()
     app.redrawRequested = true
@@ -267,7 +270,8 @@ function love.run()
             app.framesDrawn = app.framesDrawn + 1
             love.timer.sleep(0.001)
         else
-            love.timer.sleep(IDLE_SLEEP)
+            local quiet = love.timer.getTime() > app.activeUntil + QUIET_AFTER
+            love.timer.sleep(quiet and QUIET_SLEEP or IDLE_SLEEP)
         end
     end
 end
@@ -294,7 +298,6 @@ function love.load(args)
     app.stats = storage.loadStats()
     app.packProgress = packs.loadProgress(storage.loadPackProgress())
     app.applySettings()
-    sound.load()
 
     local saved = storage.loadGame()
     if saved then
@@ -349,6 +352,7 @@ function love.draw()
     end
 
     ui.begin()
+    theme.texture(0, 0, ui.W, ui.H)
     for k = first, #app.stack do
         local s = app.stack[k]
         love.graphics.setColor(1, 1, 1, 1)
