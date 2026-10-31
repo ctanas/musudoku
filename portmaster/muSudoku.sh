@@ -34,9 +34,9 @@ export MUSUDOKU_PACKS="$GAMEDIR/packs"
 # Source love2d runtime
 source $controlfolder/runtimes/"love_11.5"/love.txt
 
-# The game scales its 720x480 layout to the WxH argument
+# Use the love runtime; the game scales its layout to the WxH argument
 $GPTOKEYB "$LOVE_GPTK" &
 pm_platform_helper "$LOVE_BINARY"
-$LOVE_RUN "$GAMEDIR/musudoku.love" "${DISPLAY_WIDTH}x${DISPLAY_HEIGHT}"
+$LOVE_RUN gamedata "${DISPLAY_WIDTH}x${DISPLAY_HEIGHT}"
 
 pm_finish

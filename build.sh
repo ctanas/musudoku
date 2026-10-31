@@ -103,9 +103,7 @@ build_portmaster() {
     mkdir -p "$port/musudoku/packs" "$port/musudoku/licenses"
 
     cp "$ROOT"/portmaster/* "$port/"
-    copy_game "$stage/love"
-    (cd "$stage/love" && zip -qr -X "$port/musudoku/musudoku.love" .)
-    rm -rf "$stage/love"
+    copy_game "$port/musudoku/gamedata"
     cp "$ROOT"/packs/*.txt "$port/musudoku/packs/"
     cp "$ROOT/LICENSE" "$port/musudoku/licenses/LICENSE.musudoku.txt"
     cp "$ROOT/game/assets/fonts/OFL.txt" "$port/musudoku/licenses/LICENSE.atkinsonhyperlegible.txt"
