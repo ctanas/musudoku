@@ -3,6 +3,7 @@
 #
 #   ./build.sh          build the muOS package  -> build/muSudoku_vX.Y.Z.muxapp
 #   ./build.sh love     build a .love file for testing on a PC -> build/muSudoku.love
+#   ./build.sh portmaster  build the PortMaster port -> build/portmaster/, build/musudoku.zip
 #   ./build.sh test     run the engine and puzzle pack tests (needs luajit)
 #   ./build.sh run      run the game on this PC (needs love 11.5)
 #
@@ -90,6 +91,35 @@ build_love() {
     echo "Built $(basename "$out")  (run with: love build/${APP_NAME}.love)"
 }
 
+# build/portmaster/musudoku/ is the folder for ports/ in PortMaster-New, and
+# build/musudoku.zip is the same port laid out the way PortMaster installs it
+# (copy it to PortMaster/autoinstall/ to test on a device).
+build_portmaster() {
+    local stage="$BUILD/portmaster"
+    local port="$stage/musudoku"
+    local inst="$stage/install"
+    local out="$BUILD/musudoku.zip"
+    rm -rf "$stage" "$out"
+    mkdir -p "$port/musudoku/packs" "$port/musudoku/licenses"
+
+    cp "$ROOT"/portmaster/* "$port/"
+    copy_game "$stage/love"
+    (cd "$stage/love" && zip -qr -X "$port/musudoku/musudoku.love" .)
+    rm -rf "$stage/love"
+    cp "$ROOT"/packs/*.txt "$port/musudoku/packs/"
+    cp "$ROOT/LICENSE" "$port/musudoku/licenses/LICENSE.musudoku.txt"
+    cp "$ROOT/game/assets/fonts/OFL.txt" "$port/musudoku/licenses/LICENSE.atkinsonhyperlegible.txt"
+
+    mkdir -p "$inst"
+    cp "$port/muSudoku.sh" "$inst/"
+    cp -R "$port/musudoku" "$inst/"
+    cp "$port/port.json" "$port/gameinfo.xml" "$port/screenshot.png" "$inst/musudoku/"
+    cp "$port/README.md" "$inst/musudoku/musudoku.md"
+    (cd "$inst" && zip -qr -X "$out" .)
+    rm -rf "$inst"
+    echo "Built build/portmaster/musudoku/ and $(basename "$out") ($(du -h "$out" | cut -f1))"
+}
+
 find_love() {
     if command -v love >/dev/null 2>&1; then
         echo love
@@ -104,6 +134,7 @@ find_love() {
 case "${1:-muos}" in
     muos) build_muos ;;
     love) build_love ;;
+    portmaster) build_portmaster ;;
     test) (cd "$ROOT" && luajit tests/test_sudoku.lua "${2:-10}" && luajit tests/test_dlx.lua "${2:-10}" && luajit tests/test_packs.lua && luajit tests/test_hints.lua) ;;
     run)
         shift
@@ -111,5 +142,5 @@ case "${1:-muos}" in
         export MUSUDOKU_PACKS="${MUSUDOKU_PACKS:-$ROOT/packs}"
         cd "$ROOT" && "$LOVE_BIN" game "$@"
         ;;
-    *) echo "Usage: ./build.sh [muos|love|test|run]"; exit 1 ;;
+    *) echo "Usage: ./build.sh [muos|love|portmaster|test|run]"; exit 1 ;;
 esac

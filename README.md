@@ -185,6 +185,7 @@ for building.
 ./build.sh test           # engine, puzzle pack and hint tests (luajit)
 ./build.sh love           # build/muSudoku.love
 ./build.sh                # build/muSudoku_vX.Y.Z.muxapp
+./build.sh portmaster     # build/portmaster/musudoku/ and build/musudoku.zip
 ```
 
 ### On macOS
@@ -237,6 +238,8 @@ hidden. A button press draws about 7 frames.
 mux_launch.sh        muOS launcher (sets up SDL, saves, runs LÖVE)
 mux_lang.ini         Name and help text shown in the muOS menu
 glyph/               Menu icon
+portmaster/          PortMaster launcher, port.json, gameinfo.xml, README and
+                     screenshot
 screenshots/         Images used in this README (not packaged)
 build.sh             Build, test and run commands
 packs/               Starter pack (copied into the muxapp)
