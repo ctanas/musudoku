@@ -283,7 +283,7 @@ in the game.
 - Game code: MIT (see `LICENSE`)
 - Atkinson Hyperlegible font by the Braille Institute: SIL Open Font License
 - LÖVE: zlib license
-- aarch64 LÖVE runtime and launcher structure: saitamasahil (MIT)
+- muOS package's aarch64 LÖVE runtime and launcher structure: saitamasahil (MIT)
 - Dancing Links generator: Donald Knuth's Algorithm X
 - Theme colors: Solarized by Ethan Schoonover, Nord by Arctic Ice Studio and Gruvbox
   by Pavel Pertsev (all MIT)
