@@ -137,6 +137,28 @@ function M.start(app)
         function() shot("15d_check_result") end,
         function() press("a") return 0.4 end,
         function() shot("15e_after_check") end,
+        -- number-first input: R2 picks the next number, A places it
+        function()
+            app.settings.input = "number"
+            local g = app.game
+            g.cursor = g:nextEmpty(60, 1)
+            press("r2")
+            return 0.4
+        end,
+        function() shot("15f_number_first") end,
+        function() press("x") return 0.4 end,
+        function() shot("15g_number_first_pencil") end,
+        function()
+            press("x")
+            app.settings.input = "cell"
+            app.push("settings")
+            local s = app.top()
+            s.sel = 9 -- the last row
+            s:scrollToSelection()
+            return 0.3
+        end,
+        function() shot("15h_settings_scrolled") end,
+        function() press("b") return 0.3 end,
         function()
             app.settings.timer = true
             app.settings.mistakes = true

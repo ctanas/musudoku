@@ -7,6 +7,9 @@ Settings.__index = Settings
 
 local ROWS = {
     { key = "theme", label = "Theme", about = "Light themes: Paper, Sakura, Frankfurt, Solarized Light. Dark: Cyanotype, Solarized Dark, Nord, Gruvbox, and Chalkboard with chalk dust and a wooden frame." },
+    { key = "input", label = "Input",
+      choices = { { "cell", "Cell first" }, { "number", "Number first" } },
+      about = "Cell first: pick a cell, then its number from the pad. Number first: pick a number with L2 / R2, then press A on each cell it goes in." },
     { key = "mistakes", label = "Check mistakes", about = "Wrong numbers turn red and are counted. With this off, Check board in the pause menu says how many are wrong, for the cost of a hint." },
     { key = "matching", label = "Highlight matching numbers", about = "Cells and notes with the selected number light up." },
     { key = "autoclear", label = "Clear notes automatically", about = "Placing a number removes it from notes in the same row, column and box." },
@@ -20,8 +23,15 @@ local ROWS = {
       about = "Both make puzzles with exactly one solution, graded the same way. Classic uses a backtracking solver, Dancing Links uses Knuth's Algorithm X." },
 }
 
+local VISIBLE = 8 -- rows on screen; the list scrolls to keep the selection in view
+
 function Settings.new(app)
-    return setmetatable({ app = app, t = 0, sel = 1 }, Settings)
+    return setmetatable({ app = app, t = 0, sel = 1, top = 1 }, Settings)
+end
+
+function Settings:scrollToSelection()
+    if self.sel < self.top then self.top = self.sel end
+    if self.sel > self.top + VISIBLE - 1 then self.top = self.sel - VISIBLE + 1 end
 end
 
 function Settings:update(dt)
@@ -56,9 +66,11 @@ end
 function Settings:action(a)
     if a == "up" then
         self.sel = (self.sel - 2) % #ROWS + 1
+        self:scrollToSelection()
         sound.play("menu")
     elseif a == "down" then
         self.sel = self.sel % #ROWS + 1
+        self:scrollToSelection()
         sound.play("menu")
     elseif a == "left" then
         self:change(-1)
@@ -86,8 +98,10 @@ function Settings:draw()
     ui.text("Settings", 64, 40, 36, "bold")
 
     local x, w, y0, h = 64, 592, 92, 36
-    for k, row in ipairs(ROWS) do
-        local cy = y0 + (k - 1) * h + h / 2
+    local last = math.min(#ROWS, self.top + VISIBLE - 1)
+    for k = self.top, last do
+        local row = ROWS[k]
+        local cy = y0 + (k - self.top) * h + h / 2
         local selected = (k == self.sel)
         if selected then
             theme.set("panel")
@@ -110,8 +124,18 @@ function Settings:draw()
         end
     end
 
+    -- small arrows on the left when rows are scrolled out of view
     theme.set("muted")
-    ui.text(ROWS[self.sel].about, x, y0 + #ROWS * h + 14, 16, "regular", "left", w)
+    local ax = x - 40
+    if self.top > 1 then
+        love.graphics.polygon("fill", ax, y0 + 12, ax + 12, y0 + 12, ax + 6, y0 + 5)
+    end
+    if last < #ROWS then
+        local by = y0 + VISIBLE * h
+        love.graphics.polygon("fill", ax, by - 12, ax + 12, by - 12, ax + 6, by - 5)
+    end
+
+    ui.text(ROWS[self.sel].about, x, y0 + (last - self.top + 1) * h + 14, 16, "regular", "left", w)
 
     ui.hints({ { "B", "Back" }, { "A", "Change" } }, 696, 452, "right")
 end

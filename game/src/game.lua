@@ -146,6 +146,18 @@ function Game:nextEmpty(from, dir)
     return nil
 end
 
+-- The number after d (dir 1) or before it (dir -1) that isn't already on the
+-- board nine times, wrapping from 9 to 1. If every number is, just the next one.
+function Game:nextNeededDigit(d, dir)
+    local counts = self:digitCounts()
+    local n = d
+    for _ = 1, 9 do
+        n = (n - 1 + dir) % 9 + 1
+        if counts[n] < 9 then return n end
+    end
+    return (d - 1 + dir) % 9 + 1
+end
+
 -- For checking the board: how many numbers the player placed (givens and
 -- hinted cells left out), and how many of those are wrong.
 function Game:checkPlaced()

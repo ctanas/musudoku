@@ -102,12 +102,14 @@ storage.DEFAULT_SETTINGS = {
     hints = "off", -- "off" | "explained" | "instant"
     boardOnly = false, -- distraction-free: just the board, centered
     generator = "classic", -- "classic" | "dlx" (Dancing Links)
+    input = "cell", -- "cell" (pick a cell, then its number) | "number" (the other way round)
 }
 
 local CHOICES = {
     hints = { off = true, explained = true, instant = true },
     theme = {},
     generator = { classic = true, dlx = true },
+    input = { cell = true, number = true },
 }
 for _, key in ipairs(theme.ORDER) do CHOICES.theme[key] = true end
 

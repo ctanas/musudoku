@@ -215,6 +215,43 @@ function Play:jumpEmpty(dir)
     sound.play("move")
 end
 
+-- Number-first input: A puts the chosen number (the game's lastDigit) in the
+-- cursor's cell, and L2 / R2 choose the number.
+function Play:numberFirst()
+    return self.app.settings.input == "number"
+end
+
+-- L2 / R2 in number-first input: the previous / next number that isn't
+-- already on the board nine times.
+function Play:cycleDigit(dir, silent)
+    local g = self.game
+    g.lastDigit = g:nextNeededDigit(g.lastDigit, dir)
+    self.app.markDirty()
+    if not silent then sound.play("move") end
+end
+
+-- A in number-first input. On a given or hinted cell it picks up that number
+-- instead, since nothing can go there.
+function Play:stamp()
+    local g = self.game
+    local i = g.cursor
+    if g.fixed[i] then
+        if g.lastDigit ~= g.values[i] then
+            g.lastDigit = g.values[i]
+            self.app.markDirty()
+            sound.play("note")
+        else
+            self:react({ blocked = true })
+        end
+        return
+    end
+    local res = self:applyDigit(g.lastDigit)
+    -- all nine placed: move on to the next number still needed
+    if res.placed and not res.solved and g:digitCounts()[g.lastDigit] >= 9 then
+        self:cycleDigit(1, true)
+    end
+end
+
 function Play:applyDigit(d)
     local g, app = self.game, self.app
     local i = g.cursor
@@ -410,7 +447,8 @@ function Play:action(a)
     elseif a == "down" then self:move(1, 0)
     elseif a == "left" then self:move(0, -1)
     elseif a == "right" then self:move(0, 1)
-    elseif a == "a" then self:openPad()
+    elseif a == "a" then
+        if self:numberFirst() then self:stamp() else self:openPad() end
     elseif a == "b" or a == "erase" then
         local res = g:erase(g.cursor)
         if not res.empty then self:react(res, g.cursor) end
@@ -428,8 +466,9 @@ function Play:action(a)
         end
     elseif a == "l1" then self:history("undo")
     elseif a == "r1" then self:history("redo")
-    elseif a == "l2" then self:jumpEmpty(-1)
-    elseif a == "r2" then self:jumpEmpty(1)
+    elseif a == "l2" or a == "r2" then
+        local dir = (a == "l2") and -1 or 1
+        if self:numberFirst() then self:cycleDigit(dir) else self:jumpEmpty(dir) end
     elseif a == "select" then self:react(g:toggleNotes(), g.cursor)
     elseif digit then self:applyDigit(tonumber(digit))
     end
@@ -526,6 +565,8 @@ function Play:drawBoard()
     local match = 0
     if self.pad then
         match = self.pad.sel
+    elseif self:numberFirst() then
+        match = g.lastDigit
     elseif settings.matching then
         match = g.values[cur]
     end
@@ -698,6 +739,20 @@ function Play:drawBoard()
                 love.graphics.setLineWidth(3 - k)
                 ui.rect("line", r.x - spread, r.y - spread, r.w + spread * 2, r.h + spread * 2, 6 + spread)
             end
+        end
+    end
+
+    -- number-first input: a faint preview of what A would put in the cell
+    if self:numberFirst() and not self.winT and not hint and not g.fixed[cur] and g.values[cur] == 0 then
+        local x, y = self:cellPos(cur)
+        local d = g.lastDigit
+        if g.mode == "pen" and g.notes[cur] == 0 then
+            theme.set("mark", 0.35)
+            ui.centered(tostring(d), x + CS / 2, y + CS / 2, 32, "regular", "center")
+        elseif g.mode == "pencil" and band(g.notes[cur], DIGIT_BIT[d]) == 0 then
+            local nx, ny = notePos(x, y, d)
+            theme.set("mark", 0.5)
+            ui.centered(tostring(d), nx, ny, 14, "bold", "center")
         end
     end
 
@@ -889,13 +944,15 @@ function Play:drawPanel()
         local v = g.values[i]
         if v ~= 0 then inBox[v][BOX[i]] = true end
     end
+    local numberFirst = self:numberFirst()
     local match = self.pad and self.pad.sel or (settings.matching and g.values[g.cursor] or 0)
+    if numberFirst then match = g.lastDigit end
     local tw, th, gap = 68, 54, 6
     for d = 1, 9 do
         local r, c = math.floor((d - 1) / 3), (d - 1) % 3
         local tx, ty = x + c * (tw + gap), y + r * (th + 8)
         local left = 9 - counts[d]
-        theme.set("panel")
+        theme.set((numberFirst and d == match) and "same" or "panel")
         ui.rect("fill", tx, ty, tw, th, 7)
         local tf = self.tileFlash[d]
         if tf then
@@ -905,8 +962,9 @@ function Play:drawPanel()
         end
         if d == match then
             theme.set("mark")
-            love.graphics.setLineWidth(2)
-            ui.rect("line", tx + 1, ty + 1, tw - 2, th - 2, 7)
+            local lw = numberFirst and 3 or 2
+            love.graphics.setLineWidth(lw)
+            ui.rect("line", tx + lw / 2, ty + lw / 2, tw - lw, th - lw, 7)
         end
         local alpha = (left <= 0) and 0.4 or 1
         theme.set("text", alpha)
@@ -936,13 +994,20 @@ function Play:drawPanel()
             { { "L1", "Undo" }, { "R1", "Redo" } },
         }
     else
+        local enter = "Enter"
+        if numberFirst then enter = (pencil and "Note " or "Place ") .. g.lastDigit end
         rows = {
-            { { "A", "Enter" }, { "B", "Erase" } },
+            { { "A", enter }, { "B", "Erase" } },
             { { "X", pencil and "Pen" or "Pencil" }, settings.hints ~= "off" and { "Y", "Hint" } or nil },
             { { "L1", "Undo" }, { "R1", "Redo" } },
         }
     end
-    ui.legend(rows, { x, x + 116 }, 462 - (#rows - 1) * 32, 32, nil, 20, 1.2)
+    local legendTop = 462 - (#rows - 1) * 32
+    ui.legend(rows, { x, x + 116 }, legendTop, 32, nil, 20, 1.2)
+    if numberFirst and not self.pad then
+        -- its own row, so its wide glyph doesn't push the columns above apart
+        ui.hints({ { "L2 / R2", "Change number" } }, x, legendTop - 32, "left", nil, 20, 1.2)
+    end
 end
 
 function Play:drawConfetti()

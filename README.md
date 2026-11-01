@@ -17,6 +17,9 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   - **Hard**: needs pointing pairs, or naked and hidden pairs and triples
   - **Expert**: needs techniques beyond those
 - Pen and pencil modes, one-button note filling, and notes that clear themselves
+- Two ways to enter numbers (Settings → Input): **Cell first** picks a cell, then its
+  number from a pad. **Number first** picks a number with L2 / R2, then A puts it in
+  each cell you choose (see "Number-first input" below)
 - Undo and redo, optional mistake checking. With it off, **Check board** in the pause
   menu says how many of your numbers are wrong, but not which, for the cost of a hint
 - L2 / R2 jump to the previous / next empty cell
@@ -94,12 +97,12 @@ to use.
 | Button | On the board | In the number pad |
 |---|---|---|
 | D-pad | Move (hold to repeat, wraps at edges) | Choose a number |
-| A | Open the number pad | Place number, or toggle note in pencil mode |
+| A | Open the number pad (Number first: place the chosen number) | Place number, or toggle note in pencil mode |
 | B | Erase the cell | Close |
 | X | Switch pen / pencil | Switch pen / pencil |
 | Y | Hint, if turned on in Settings | Erase the cell |
 | L1 / R1 | Undo / redo | Undo / redo |
-| L2 / R2 | Previous / next empty cell (hold to repeat) | Same, and the pad follows |
+| L2 / R2 | Previous / next empty cell, hold to repeat (Number first: change the number) | Same, and the pad follows |
 | Select | Fill all notes, or clear them if there are any | |
 | Start / Menu | Pause menu | Pause menu |
 
@@ -137,6 +140,16 @@ don't count toward best times.
 
 On a PC keyboard: arrows move, Enter/Space is A, Backspace is B, X and Y are X and Y,
 Q/E are L1/R1, Page Up/Page Down are L2/R2, Tab is Select, Esc is Start, and 1–9 / 0 enter or erase directly.
+
+### Number-first input
+
+With **Settings → Input → Number first**, there's no pad. L2 / R2 choose a number,
+which is highlighted in the side panel and on the board, and A puts it in the cell
+under the cursor, or toggles it as a note in pencil mode. A on a cell that already
+has that number clears it. A on a given picks up the given's number instead. L2 / R2
+skip numbers that are already on the board nine times, and once the chosen number
+is placed nine times, the next number still needed is chosen. An empty cell shows a
+faint preview of what A would put there.
 
 ### Distraction-free mode
 
@@ -281,11 +294,6 @@ make the package much smaller.
 
 ## TODO
 
-1. **Number-first input.** Pick a number once, then press A on cells to place it,
-   instead of opening the pad for every cell. The matching-number highlight already
-   shows where that number is. Best as a Settings choice (Cell first / Number first).
-   L2 / R2 jump to empty cells now, so in number-first mode they could change the
-   number instead.
 2. **Daily puzzle.** The same puzzle for everyone each day, with its own streak. Both
    generators already take a random-number source, so seeding it from the date gives
    a repeatable puzzle with no network. It must always use one generator, since

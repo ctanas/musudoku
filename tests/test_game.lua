@@ -50,6 +50,25 @@ check("only one empty cell, forward", g:nextEmpty(1, 1) == 41, g:nextEmpty(1, 1)
 check("only one empty cell, backward", g:nextEmpty(81, -1) == 41, g:nextEmpty(81, -1))
 check("no other empty cell", g:nextEmpty(41, 1) == nil and g:nextEmpty(41, -1) == nil)
 
+-- nextNeededDigit ---------------------------------------------------------------
+
+g = newGame()
+check("next number", g:nextNeededDigit(4, 1) == 5, g:nextNeededDigit(4, 1))
+check("previous number", g:nextNeededDigit(4, -1) == 3, g:nextNeededDigit(4, -1))
+check("wraps 9 to 1", g:nextNeededDigit(9, 1) == 1, g:nextNeededDigit(9, 1))
+check("wraps 1 to 9", g:nextNeededDigit(1, -1) == 9, g:nextNeededDigit(1, -1))
+for i = 1, 81 do
+    if g.values[i] == 0 and (g.solution[i] == 5 or g.solution[i] == 6) then
+        g:enter(i, g.solution[i], settings)
+    end
+end
+check("skips numbers placed nine times", g:nextNeededDigit(4, 1) == 7, g:nextNeededDigit(4, 1))
+check("skips them going back too", g:nextNeededDigit(7, -1) == 4, g:nextNeededDigit(7, -1))
+for i = 1, 81 do
+    if g.values[i] == 0 then g:enter(i, g.solution[i], settings) end
+end
+check("all placed: just the next one", g:nextNeededDigit(4, 1) == 5, g:nextNeededDigit(4, 1))
+
 -- checkPlaced -------------------------------------------------------------------
 
 g = newGame()
