@@ -13,7 +13,7 @@ local daily = require("src.daily")
 local history = require("src.history")
 local records = require("src.records")
 
-local VERSION = "1.3.2"
+local VERSION = "1.3.3"
 
 local SCENES = {
     title = require("src.scenes.title"),
