@@ -1,12 +1,16 @@
 -- Turns gamepad buttons, the analog stick and keyboard keys into actions:
--- up down left right a b x y l1 r1 select start menu, plus digit1..digit9
--- and erase from a PC keyboard. Directions repeat while held.
+-- up down left right a b x y l1 r1 l2 r2 select start menu, plus
+-- digit1..digit9 and erase from a PC keyboard. Directions, L2 and R2 repeat
+-- while held.
 
 local input = {}
 
 local REPEAT_DELAY = 0.26
 local REPEAT_RATE = 0.07
 local STICK_THRESHOLD = 0.55
+-- L2 and R2 arrive as trigger axes (0 to 1), even where they're plain buttons.
+-- Two thresholds, so an analog trigger resting near one doesn't flicker.
+local TRIGGER_PRESS, TRIGGER_RELEASE = 0.6, 0.4
 
 local PAD = {
     dpup = "up", dpdown = "down", dpleft = "left", dpright = "right",
@@ -21,14 +25,18 @@ local KEYS = {
     backspace = "b", b = "b",
     x = "x", y = "y",
     q = "l1", e = "r1",
+    pageup = "l2", pagedown = "r2",
     tab = "select", rshift = "select",
     escape = "start", p = "start",
 }
 
-local DIRECTIONS = { up = true, down = true, left = true, right = true }
+local TRIGGERS = { triggerleft = "l2", triggerright = "r2" }
 
-local held = {}          -- [direction] = { t = seconds held, next = next repeat time }
+local REPEATS = { up = true, down = true, left = true, right = true, l2 = true, r2 = true }
+
+local held = {}          -- [action] = { t = seconds held, next = next repeat time }
 local stick = { x = nil, y = nil }
+local triggers = {}      -- [axis] = true while pulled
 
 input.handler = function() end
 
@@ -37,14 +45,14 @@ local function fire(action)
 end
 
 local function press(action)
-    if DIRECTIONS[action] then
+    if REPEATS[action] then
         held[action] = { t = 0, next = REPEAT_DELAY }
     end
     fire(action)
 end
 
 local function release(action)
-    if DIRECTIONS[action] then held[action] = nil end
+    if REPEATS[action] then held[action] = nil end
 end
 
 function input.update(dt)
@@ -92,7 +100,17 @@ function input.gamepadreleased(_, button)
 end
 
 function input.gamepadaxis(_, axis, value)
-    if axis == "leftx" or axis == "lefty" then
+    local trigger = TRIGGERS[axis]
+    if trigger then
+        local down = triggers[axis]
+        if not down and value >= TRIGGER_PRESS then
+            triggers[axis] = true
+            press(trigger)
+        elseif down and value <= TRIGGER_RELEASE then
+            triggers[axis] = nil
+            release(trigger)
+        end
+    elseif axis == "leftx" or axis == "lefty" then
         local key = (axis == "leftx") and "x" or "y"
         local dir = nil
         if value <= -STICK_THRESHOLD then dir = (key == "x") and "left" or "up"

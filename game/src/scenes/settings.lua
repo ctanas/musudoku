@@ -7,7 +7,7 @@ Settings.__index = Settings
 
 local ROWS = {
     { key = "theme", label = "Theme", about = "Light themes: Paper, Sakura, Frankfurt, Solarized Light. Dark: Cyanotype, Solarized Dark, Nord, Gruvbox, and Chalkboard with chalk dust and a wooden frame." },
-    { key = "mistakes", label = "Check mistakes", about = "Wrong numbers turn red and are counted." },
+    { key = "mistakes", label = "Check mistakes", about = "Wrong numbers turn red and are counted. With this off, Check board in the pause menu says how many are wrong, for the cost of a hint." },
     { key = "matching", label = "Highlight matching numbers", about = "Cells and notes with the selected number light up." },
     { key = "autoclear", label = "Clear notes automatically", about = "Placing a number removes it from notes in the same row, column and box." },
     { key = "hints", label = "Hints",

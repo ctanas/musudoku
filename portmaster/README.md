@@ -15,5 +15,6 @@ Puzzle packs (text files of puzzles) go in `ports/musudoku/packs/`. A starter pa
 | Y | Hint (turn on in Settings) |
 | L1 | Undo |
 | R1 | Redo |
+| L2 / R2 | Previous / next empty cell |
 | Select | Fill or clear all notes |
 | Start | Pause menu |

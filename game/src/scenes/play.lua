@@ -203,6 +203,18 @@ function Play:move(dr, dc)
     sound.play("move")
 end
 
+-- L2 / R2: jump to the previous / next empty cell.
+function Play:jumpEmpty(dir)
+    local g = self.game
+    local i = g:nextEmpty(g.cursor, dir)
+    if not i then
+        self:react({ blocked = true })
+        return
+    end
+    g.cursor = i
+    sound.play("move")
+end
+
 function Play:applyDigit(d)
     local g, app = self.game, self.app
     local i = g.cursor
@@ -386,6 +398,10 @@ function Play:action(a)
             self:history("undo")
         elseif a == "r1" then
             self:history("redo")
+        elseif a == "l2" or a == "r2" then
+            -- the pad stays open and follows the cursor, so in pencil mode
+            -- you can note one cell after another
+            self:jumpEmpty(a == "l2" and -1 or 1)
         end
         return
     end
@@ -412,6 +428,8 @@ function Play:action(a)
         end
     elseif a == "l1" then self:history("undo")
     elseif a == "r1" then self:history("redo")
+    elseif a == "l2" then self:jumpEmpty(-1)
+    elseif a == "r2" then self:jumpEmpty(1)
     elseif a == "select" then self:react(g:toggleNotes(), g.cursor)
     elseif digit then self:applyDigit(tonumber(digit))
     end

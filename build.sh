@@ -133,7 +133,7 @@ case "${1:-muos}" in
     muos) build_muos ;;
     love) build_love ;;
     portmaster) build_portmaster ;;
-    test) (cd "$ROOT" && luajit tests/test_sudoku.lua "${2:-10}" && luajit tests/test_dlx.lua "${2:-10}" && luajit tests/test_packs.lua && luajit tests/test_hints.lua) ;;
+    test) (cd "$ROOT" && luajit tests/test_sudoku.lua "${2:-10}" && luajit tests/test_dlx.lua "${2:-10}" && luajit tests/test_packs.lua && luajit tests/test_game.lua && luajit tests/test_hints.lua) ;;
     run)
         shift
         LOVE_BIN="$(find_love)"

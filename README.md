@@ -17,7 +17,9 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   - **Hard**: needs pointing pairs, or naked and hidden pairs and triples
   - **Expert**: needs techniques beyond those
 - Pen and pencil modes, one-button note filling, and notes that clear themselves
-- Undo and redo, optional mistake checking
+- Undo and redo, optional mistake checking. With it off, **Check board** in the pause
+  menu says how many of your numbers are wrong, but not which, for the cost of a hint
+- L2 / R2 jump to the previous / next empty cell
 - Optional explained hints (off by default): Y finds the easiest logical move and
   explains it on the board, walking through any groundwork it needs first (see
   "Explained hints" below)
@@ -27,7 +29,8 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   digits bounce in a ripple with a glow pulse, and solving the puzzle adds a
   board-wide wave and confetti
 - Auto-save, with Continue on the title screen
-- Statistics per difficulty: started, solved, best and average time
+- Statistics per difficulty: started, solved, perfect (no hints, no mistakes), best
+  and average time
 - Nine themes. Light: Paper, Sakura, Frankfurt (Lufthansa blue and yellow) and
   Solarized Light. Dark: Cyanotype (default), Solarized Dark, Nord, Gruvbox, and
   Chalkboard (green slate with chalk dust and a wooden frame around the board)
@@ -96,6 +99,7 @@ to use.
 | X | Switch pen / pencil | Switch pen / pencil |
 | Y | Hint, if turned on in Settings | Erase the cell |
 | L1 / R1 | Undo / redo | Undo / redo |
+| L2 / R2 | Previous / next empty cell (hold to repeat) | Same, and the pad follows |
 | Select | Fill all notes, or clear them if there are any | |
 | Start / Menu | Pause menu | Pause menu |
 
@@ -132,7 +136,7 @@ cell if the selected one is already right. Hinted cells lock, and solves with hi
 don't count toward best times.
 
 On a PC keyboard: arrows move, Enter/Space is A, Backspace is B, X and Y are X and Y,
-Q/E are L1/R1, Tab is Select, Esc is Start, and 1–9 / 0 enter or erase directly.
+Q/E are L1/R1, Page Up/Page Down are L2/R2, Tab is Select, Esc is Start, and 1–9 / 0 enter or erase directly.
 
 ### Distraction-free mode
 
@@ -274,6 +278,29 @@ devices. To use a different
 runtime, set `LOVE_RUNTIME=/path/to/dir` containing `love` and `libs.aarch64/`.
 That bundle includes libraries the game doesn't need, so a trimmed runtime would
 make the package much smaller.
+
+## TODO
+
+1. **Number-first input.** Pick a number once, then press A on cells to place it,
+   instead of opening the pad for every cell. The matching-number highlight already
+   shows where that number is. Best as a Settings choice (Cell first / Number first).
+   L2 / R2 jump to empty cells now, so in number-first mode they could change the
+   number instead.
+2. **Daily puzzle.** The same puzzle for everyone each day, with its own streak. Both
+   generators already take a random-number source, so seeding it from the date gives
+   a repeatable puzzle with no network. It must always use one generator, since
+   Classic and Dancing Links give different puzzles from the same seed. It also
+   relies on the device clock, which can be wrong on a handheld that hasn't been
+   online.
+3. **Large notes.** A Settings option for bigger note digits. Notes are about 16 px
+   apart in a 50 px cell, and nine of them have to fit.
+4. **More techniques and a Master difficulty.** Add X-Wing, Swordfish and XY-Wing to
+   the grader and to explained hints, so Expert hints can always explain the move
+   instead of offering the number. Puzzles that need more than these become Master.
+5. **Pack stats and history.** Best times per pack, and a list of recent solves. Packs
+   only track which puzzles are solved now.
+6. **Streaks.** Current and best streak per difficulty in Statistics. A streak breaks
+   when a new puzzle is started while the current one is unsolved.
 
 ## Credits and licenses
 

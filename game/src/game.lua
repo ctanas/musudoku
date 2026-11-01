@@ -134,6 +134,31 @@ function Game:filledCount()
     return n
 end
 
+-- The next empty cell after `from` in reading order (dir 1) or before it
+-- (dir -1), wrapping around the board. Cells with only notes count as empty.
+-- nil if no other cell is empty.
+function Game:nextEmpty(from, dir)
+    local i = from
+    for _ = 1, 80 do
+        i = (i - 1 + dir) % 81 + 1
+        if self.values[i] == 0 then return i end
+    end
+    return nil
+end
+
+-- For checking the board: how many numbers the player placed (givens and
+-- hinted cells left out), and how many of those are wrong.
+function Game:checkPlaced()
+    local placed, wrong = 0, 0
+    for i = 1, 81 do
+        if not self.fixed[i] and self.values[i] ~= 0 then
+            placed = placed + 1
+            if self.values[i] ~= self.solution[i] then wrong = wrong + 1 end
+        end
+    end
+    return placed, wrong
+end
+
 -- Units (row/column/box) through cell i that are now complete.
 -- strict: every number matches the solution. Otherwise the unit just has to be
 -- full with nine different numbers, which is all the player can see when

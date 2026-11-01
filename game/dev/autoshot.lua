@@ -83,7 +83,7 @@ function M.start(app)
         function() shot("10_win_wave") return 1.4 end,
         function() shot("11_win") end,
         function() press("b") return 0.4 end,
-        function() press("down", "a") return 0.4 end,
+        function() app.push("stats") return 0.4 end,
         function() shot("12_stats") end,
         function() press("b") return 0.3 end,
         function()
@@ -116,6 +116,27 @@ function M.start(app)
             return 0.3
         end,
         function() shot("15_no_timer") end,
+        -- Check board (only offered while mistake checking is off): two right
+        -- numbers and one wrong, placed after jumping with R2 and L2
+        function()
+            local g = app.game
+            press("r2", "r2", "l2")
+            for _ = 1, 2 do
+                g.cursor = g:nextEmpty(g.cursor, 1)
+                press("digit" .. g.solution[g.cursor])
+            end
+            g.cursor = g:nextEmpty(g.cursor, 1)
+            press("digit" .. (g.solution[g.cursor] % 9 + 1))
+            press("start")
+            return 0.4
+        end,
+        function() shot("15b_pause_check") end,
+        function() press("down", "down", "a") return 0.4 end,
+        function() shot("15c_check_confirm") end,
+        function() press("a") return 0.4 end,
+        function() shot("15d_check_result") end,
+        function() press("a") return 0.4 end,
+        function() shot("15e_after_check") end,
         function()
             app.settings.timer = true
             app.settings.mistakes = true

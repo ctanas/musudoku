@@ -14,6 +14,7 @@ function Pause.new(app)
             app.saveSettings()
             app.pop()
         end },
+        { label = "Check board", run = function() self:checkBoard() end },
         { label = "Restart puzzle", run = function()
             app.push("confirm", {
                 title = "Restart this puzzle?",
@@ -33,7 +34,46 @@ function Pause.new(app)
             app.setScene("title")
         end },
     }
+    -- With mistake checking on, wrong numbers are already red.
+    if app.settings.mistakes then table.remove(self.items, 3) end
     return self
+end
+
+-- Tells how many placed numbers are wrong, not which. Costs a hint.
+function Pause:checkBoard()
+    local app, g = self.app, self.app.game
+    if g:checkPlaced() == 0 then
+        app.push("confirm", {
+            info = true,
+            title = "Nothing to check",
+            body = "You haven't placed any numbers yet.",
+        })
+        return
+    end
+    app.push("confirm", {
+        title = "Check the board?",
+        body = "Counts the wrong numbers without showing where they are. It counts as a hint"
+            .. (g.pack and "." or ", so this solve won't set a best time."),
+        yes = "Check",
+        onYes = function()
+            local placed, wrong = g:checkPlaced()
+            g:countHint()
+            app.saveGame()
+            local title, body
+            if wrong == 0 then
+                title = "No mistakes"
+                body = placed == 1 and "The number you've placed is right."
+                    or ("All " .. ui.number(placed) .. " numbers you've placed are right.")
+            else
+                title = wrong == 1 and "1 number is wrong" or (ui.number(wrong) .. " numbers are wrong")
+                body = "Out of the " .. ui.number(placed) .. " you've placed."
+            end
+            app.push("confirm", {
+                info = true, title = title, body = body, yes = "Resume",
+                onYes = function() app.pop() end, -- closes the pause menu too
+            })
+        end,
+    })
 end
 
 function Pause:resumeGame()

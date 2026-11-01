@@ -14,10 +14,11 @@ local LEVELS = {
 }
 
 local COLUMNS = {
-    { label = "Started", x = 300 },
-    { label = "Solved", x = 400 },
-    { label = "Best", x = 510 },
-    { label = "Average", x = 640 },
+    { label = "Started", x = 270 },
+    { label = "Solved", x = 362 },
+    { label = "Perfect", x = 454 },
+    { label = "Best", x = 556 },
+    { label = "Average", x = 656 },
 }
 
 function Stats.new(app)
@@ -73,6 +74,7 @@ function Stats:draw()
         local values = {
             tostring(e.started),
             tostring(e.solved),
+            tostring(e.perfect),
             e.best > 0 and ui.formatTime(e.best) or "None",
             e.solved > 0 and ui.formatTime(e.total / e.solved) or "None",
         }
@@ -90,8 +92,8 @@ function Stats:draw()
     if totals.started == 0 then
         summary = "Solve a puzzle to start filling in this table."
     else
-        summary = string.format("%d of %d puzzles solved. Best times only count solves without hints.",
-            totals.solved, totals.started)
+        summary = string.format("%d of %d puzzles solved. Perfect solves had no hints and no mistakes. "
+            .. "Best times only count solves without hints.", totals.solved, totals.started)
     end
     ui.text(summary, 64, 380, 16, "regular", "left", 592)
 
