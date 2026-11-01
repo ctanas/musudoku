@@ -16,7 +16,8 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   - **Medium**: adds cells with only one possible number (naked singles)
   - **Hard**: needs pointing pairs, or naked and hidden pairs and triples
   - **Expert**: needs techniques beyond those
-- Pen and pencil modes, one-button note filling, and notes that clear themselves
+- Pen and pencil modes, one-button note filling, notes that clear themselves, and a
+  Large notes setting for easier reading
 - Two ways to enter numbers (Settings → Input): **Cell first** picks a cell, then its
   number from a pad. **Number first** picks a number with L2 / R2, then A puts it in
   each cell you choose (see "Number-first input" below)
@@ -313,8 +314,6 @@ make the package much smaller.
 
 ## TODO
 
-3. **Large notes.** A Settings option for bigger note digits. Notes are about 16 px
-   apart in a 50 px cell, and nine of them have to fit.
 4. **More techniques and a Master difficulty.** Add X-Wing, Swordfish and XY-Wing to
    the grader and to explained hints, so Expert hints can always explain the move
    instead of offering the number. Puzzles that need more than these become Master.

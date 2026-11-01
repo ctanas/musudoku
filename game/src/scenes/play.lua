@@ -551,13 +551,25 @@ end
 
 -- Drawing: board --------------------------------------------------------------
 
+-- Notes sit in a 3x3 grid inside the cell. The Large notes setting makes the
+-- digits bigger in the same places (spreading them wider would put the corner
+-- ones under the cursor); drawBoard sets it each frame.
+local largeNotes = false
+
 local function notePos(x, y, d)
     local r, c = math.floor((d - 1) / 3), (d - 1) % 3
     return x + 9 + c * 16, y + 9 + r * 16
 end
 
+-- Note digit size: plain notes, or bold ones (matching, hint marks, preview).
+local function noteSize(bold)
+    if largeNotes then return bold and 18 or 17 end
+    return bold and 14 or 13
+end
+
 function Play:drawBoard()
     local g, settings = self.game, self.app.settings
+    largeNotes = settings.largeNotes
     local hidden = self.hidden
     local cur = g.cursor
     local cr, cc, cb = ROW[cur], COL[cur], BOX[cur]
@@ -681,12 +693,13 @@ function Play:drawBoard()
                     local nx, ny = notePos(x, y, d)
                     if style == "removed" then
                         theme.set("error")
-                        ui.centered(tostring(d), nx, ny, 14, "bold", "center")
-                        love.graphics.setLineWidth(1.5)
-                        love.graphics.line(nx - 6, ny + 6, nx + 6, ny - 6)
+                        ui.centered(tostring(d), nx, ny, noteSize(true), "bold", "center")
+                        local k = largeNotes and 7.5 or 6
+                        love.graphics.setLineWidth(largeNotes and 2 or 1.5)
+                        love.graphics.line(nx - k, ny + k, nx + k, ny - k)
                     else
                         theme.set("mark")
-                        ui.centered(tostring(d), nx, ny, 14, "bold", "center")
+                        ui.centered(tostring(d), nx, ny, noteSize(true), "bold", "center")
                     end
                 end
             end
@@ -701,10 +714,10 @@ function Play:drawBoard()
                         local nx, ny = notePos(x, y, d)
                         if d == match and settings.matching then
                             theme.set("mark")
-                            ui.centered(tostring(d), nx, ny, 14, "bold", "center")
+                            ui.centered(tostring(d), nx, ny, noteSize(true), "bold", "center")
                         else
                             theme.set("note")
-                            ui.centered(tostring(d), nx, ny, 13, "regular", "center")
+                            ui.centered(tostring(d), nx, ny, noteSize(false), "regular", "center")
                         end
                     end
                 end
@@ -752,7 +765,7 @@ function Play:drawBoard()
         elseif g.mode == "pencil" and band(g.notes[cur], DIGIT_BIT[d]) == 0 then
             local nx, ny = notePos(x, y, d)
             theme.set("mark", 0.5)
-            ui.centered(tostring(d), nx, ny, 14, "bold", "center")
+            ui.centered(tostring(d), nx, ny, noteSize(true), "bold", "center")
         end
     end
 

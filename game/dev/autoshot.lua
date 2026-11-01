@@ -62,6 +62,17 @@ function M.start(app)
         function() shot("06_pad_pencil") end,
         function() press("b", "select") return 0.6 end,
         function() shot("07_notes") end,
+        function()
+            app.settings.largeNotes = true
+            app.game:fillNotes()
+            return 0.2
+        end,
+        function() shot("07b_large_notes") end,
+        function()
+            app.game:clearNotes()
+            app.settings.largeNotes = false
+            return 0.1
+        end,
         function() press("start") return 0.4 end,
         function() shot("08_pause") end,
         function() press("down", "down", "down", "a") return 0.4 end,
@@ -153,7 +164,7 @@ function M.start(app)
             app.settings.input = "cell"
             app.push("settings")
             local s = app.top()
-            s.sel = 9 -- the last row
+            s.sel = 10 -- the last row
             s:scrollToSelection()
             return 0.3
         end,

@@ -98,6 +98,7 @@ storage.DEFAULT_SETTINGS = {
     mistakes = true,
     matching = true,
     autoclear = true,
+    largeNotes = false,
     timer = true,
     sound = true,
     hints = "off", -- "off" | "explained" | "instant"

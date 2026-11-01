@@ -13,6 +13,7 @@ local ROWS = {
     { key = "mistakes", label = "Check mistakes", about = "Wrong numbers turn red and are counted. With this off, Check board in the pause menu says how many are wrong, for the cost of a hint." },
     { key = "matching", label = "Highlight matching numbers", about = "Cells and notes with the selected number light up." },
     { key = "autoclear", label = "Clear notes automatically", about = "Placing a number removes it from notes in the same row, column and box." },
+    { key = "largeNotes", label = "Large notes", about = "Bigger note digits, easier to read on a small screen." },
     { key = "hints", label = "Hints",
       choices = { { "off", "Off" }, { "explained", "Explained" }, { "instant", "Instant" } },
       about = "Off hides the hint button. Explained shows which technique to use next and why. Instant reveals a number straight away." },
