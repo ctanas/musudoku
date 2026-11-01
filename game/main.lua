@@ -122,7 +122,7 @@ function app.savePackProgress()
     storage.savePackProgress(packs.saveableProgress(app.packProgress))
 end
 
-local GRADE_DIFFICULTY = { "easy", "medium", "hard", "hard", "expert" }
+local GRADE_DIFFICULTY = { "easy", "medium", "hard", "hard", "expert", "master" }
 
 -- Start puzzle n of a pack. Returns true, or false and a reason to show.
 function app.startPackPuzzle(file, index, n)
@@ -140,7 +140,7 @@ function app.startPackPuzzle(file, index, n)
         return false, "Puzzle " .. ui.number(n) .. " has more than one solution, so it was skipped."
     end
     local grade = sudoku.grade(grid)
-    app.game = Game.new({ puzzle = grid, solution = solution }, GRADE_DIFFICULTY[grade] or "expert")
+    app.game = Game.new({ puzzle = grid, solution = solution }, GRADE_DIFFICULTY[grade] or "master")
     app.game.pack = {
         file = file.file, name = file.name, path = file.path,
         index = n, count = index.count, size = file.size,

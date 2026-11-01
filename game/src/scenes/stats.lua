@@ -11,6 +11,7 @@ local LEVELS = {
     { key = "medium", name = "Medium" },
     { key = "hard", name = "Hard" },
     { key = "expert", name = "Expert" },
+    { key = "master", name = "Master" },
 }
 
 local COLUMNS = {
@@ -65,7 +66,7 @@ function Stats:draw()
     local totals = { started = 0, solved = 0 }
     for k, level in ipairs(LEVELS) do
         local e = stats[level.key]
-        local cy = y + 18 + k * 50 - 14
+        local cy = y + 18 + k * 44 - 12
         totals.started = totals.started + e.started
         totals.solved = totals.solved + e.solved
 
@@ -84,7 +85,7 @@ function Stats:draw()
             ui.centered(values[c], col.x, cy, 20, "regular", "right")
         end
         theme.set("line")
-        love.graphics.line(64, cy + 25, 656, cy + 25)
+        love.graphics.line(64, cy + 22, 656, cy + 22)
     end
 
     theme.set("muted")
@@ -95,7 +96,7 @@ function Stats:draw()
         summary = string.format("%d of %d puzzles solved. Perfect solves had no hints and no mistakes. "
             .. "Best times only count solves without hints.", totals.solved, totals.started)
     end
-    ui.text(summary, 64, 380, 16, "regular", "left", 592)
+    ui.text(summary, 64, 392, 16, "regular", "left", 592)
 
     ui.hints({ { "Y", "Reset" }, { "B", "Back" } }, 696, 452, "right")
 end

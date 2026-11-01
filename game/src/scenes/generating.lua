@@ -6,8 +6,8 @@ local daily = require("src.daily")
 local Generating = {}
 Generating.__index = Generating
 
-local NAMES = { easy = "an easy", medium = "a medium", hard = "a hard", expert = "an expert" }
-local LEVEL_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert" }
+local NAMES = { easy = "an easy", medium = "a medium", hard = "a hard", expert = "an expert", master = "a master" }
+local LEVEL_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
 local FRAME_BUDGET = 0.010 -- seconds of generator work per frame
 local MIN_SHOWN = 0.45     -- keep the screen up briefly so it doesn't flicker
 

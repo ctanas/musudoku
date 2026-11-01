@@ -6,7 +6,7 @@ local daily = require("src.daily")
 local Title = {}
 Title.__index = Title
 
-local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert" }
+local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
 
 -- The box on the left plays one short demo: givens appear, then the cursor
 -- fills the remaining cells, the way a player would.

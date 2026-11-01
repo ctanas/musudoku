@@ -133,7 +133,7 @@ end
 
 local function emptyStats()
     local stats = {}
-    for _, d in ipairs({ "easy", "medium", "hard", "expert" }) do
+    for _, d in ipairs({ "easy", "medium", "hard", "expert", "master" }) do
         stats[d] = { started = 0, solved = 0, best = 0, total = 0, perfect = 0 }
     end
     return stats

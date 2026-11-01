@@ -194,11 +194,14 @@ end
 --   2  + naked singles
 --   3  + locked candidates (pointing / claiming)
 --   4  + naked and hidden pairs, naked triples
---   5  needs something beyond these (X-wings, chains, guessing...)
+--   5  + X-Wing, Swordfish and XY-Wing
+--   6  needs something beyond these (chains, forcing, guessing...)
 
 M.TECHNIQUE_NAMES = {
-    "Hidden singles", "Naked singles", "Locked candidates", "Pairs and triples", "Advanced",
+    "Hidden singles", "Naked singles", "Locked candidates", "Pairs and triples",
+    "X-Wing, Swordfish, XY-Wing", "Advanced",
 }
+M.MAX_GRADE = 6
 
 function M.grade(puzzle)
     local g, cand = copy(puzzle), {}
@@ -381,6 +384,99 @@ function M.grade(puzzle)
         return false
     end
 
+    -- Fish: X-Wing (size 2) and Swordfish (size 3). For a digit, `size` rows
+    -- whose places for it fall within `size` columns between them: those
+    -- columns get the digit from these rows, so the rest of each column can't
+    -- have it. The same with rows and columns swapped.
+    local function fish(size)
+        for d = 1, 9 do
+            local m = DIGIT_BIT[d]
+            for across = 0, 1 do -- 0: base rows, cover columns; 1: the other way
+                local lines, masks = {}, {}
+                for k = 0, 8 do
+                    local mask, n = 0, 0
+                    for j = 0, 8 do
+                        local i = (across == 0) and (k * 9 + j + 1) or (j * 9 + k + 1)
+                        if band(cand[i], m) ~= 0 then
+                            mask = bor(mask, lshift(1, j))
+                            n = n + 1
+                        end
+                    end
+                    if n >= 2 and n <= size then
+                        lines[#lines + 1], masks[#masks + 1] = k, mask
+                    end
+                end
+                local function sweep(chosen, union)
+                    local base = {}
+                    for _, k in ipairs(chosen) do base[k] = true end
+                    local changed = false
+                    for j = 0, 8 do
+                        if band(union, lshift(1, j)) ~= 0 then
+                            for k = 0, 8 do
+                                if not base[k] then
+                                    local i = (across == 0) and (k * 9 + j + 1) or (j * 9 + k + 1)
+                                    if eliminate(i, m) then changed = true end
+                                end
+                            end
+                        end
+                    end
+                    return changed
+                end
+                local n = #lines
+                for a = 1, n do
+                    for b2 = a + 1, n do
+                        if size == 2 then
+                            local union = bor(masks[a], masks[b2])
+                            if POP[union] == 2 and sweep({ lines[a], lines[b2] }, union) then return true end
+                        else
+                            for c2 = b2 + 1, n do
+                                local union = bor(masks[a], masks[b2], masks[c2])
+                                if POP[union] == 3 and sweep({ lines[a], lines[b2], lines[c2] }, union) then return true end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return false
+    end
+
+    local function sees(i, j)
+        return ROW[i] == ROW[j] or COL[i] == COL[j] or BOX[i] == BOX[j]
+    end
+
+    -- XY-Wing: a cell that can only be x or y, and two cells it sees that can
+    -- only be x or z and y or z. Whatever the first cell is, one of the other
+    -- two is z, so no cell seeing both of them can be z.
+    local function xyWing()
+        for p = 1, 81 do
+            local pc = cand[p]
+            if g[p] == 0 and POP[pc] == 2 then
+                local wings = {}
+                for _, q in ipairs(PEERS[p]) do
+                    local qc = cand[q]
+                    if g[q] == 0 and POP[qc] == 2 and qc ~= pc and POP[band(qc, pc)] == 1 then
+                        wings[#wings + 1] = q
+                    end
+                end
+                for a = 1, #wings do
+                    for b2 = a + 1, #wings do
+                        local qa, qb = wings[a], wings[b2]
+                        local z = band(cand[qa], bnot(pc))
+                        if z == band(cand[qb], bnot(pc)) and band(cand[qa], pc) ~= band(cand[qb], pc) then
+                            local changed = false
+                            for _, j in ipairs(PEERS[qa]) do
+                                if j ~= qb and j ~= p and sees(j, qb) and eliminate(j, z) then changed = true end
+                            end
+                            if changed then return true end
+                        end
+                    end
+                end
+            end
+        end
+        return false
+    end
+
     while empty > 0 do
         if hiddenSingle() then
             if level < 1 then level = 1 end
@@ -390,8 +486,10 @@ function M.grade(puzzle)
             if level < 3 then level = 3 end
         elseif subsets() then
             if level < 4 then level = 4 end
+        elseif fish(2) or fish(3) or xyWing() then
+            if level < 5 then level = 5 end
         else
-            return 5
+            return 6
         end
     end
     return math.max(level, 1)
@@ -400,15 +498,18 @@ end
 -- Generator -----------------------------------------------------------------
 -- Makes a full grid, then removes clues in 180° rotationally symmetric pairs
 -- while the puzzle keeps exactly one solution. The result is graded and
--- accepted if it matches the difficulty; otherwise it digs deeper or retries.
+-- accepted if it matches the difficulty. Too easy: it digs deeper. Too hard:
+-- it puts removed pairs back one at a time (more clues never add a second
+-- solution) until it isn't. Otherwise it retries.
 
-M.DIFFICULTIES = { "easy", "medium", "hard", "expert" }
+M.DIFFICULTIES = { "easy", "medium", "hard", "expert", "master" }
 
 M.SPECS = {
     easy   = { target = 40, minClues = 36, minGrade = 1, maxGrade = 1, attempts = 20 },
     medium = { target = 33, minClues = 28, minGrade = 2, maxGrade = 2, attempts = 30 },
     hard   = { target = 28, minClues = 23, minGrade = 3, maxGrade = 4, attempts = 80 },
-    expert = { target = 0,  minClues = 17, minGrade = 5, maxGrade = 5, attempts = 60 },
+    expert = { target = 0,  minClues = 17, minGrade = 5, maxGrade = 5, attempts = 120 },
+    master = { target = 0,  minClues = 17, minGrade = 6, maxGrade = 6, attempts = 80 },
 }
 
 -- `yield` (optional) is called after every uniqueness check so a caller can
@@ -431,6 +532,7 @@ function M.generate(difficulty, rng, yield, method)
         shuffle(order, rng)
 
         local clues, pos = 81, 1
+        local removed = {} -- first cell of each pair taken out
         local function digTo(target)
             while clues > target and pos <= #order do
                 local i = order[pos]
@@ -440,6 +542,7 @@ function M.generate(difficulty, rng, yield, method)
                 puzzle[i], puzzle[j] = 0, 0
                 if solver.countSolutions(puzzle, 2) == 1 then
                     clues = clues - ((i == j) and 1 or 2)
+                    removed[#removed + 1] = i
                 else
                     puzzle[i], puzzle[j] = a, b
                 end
@@ -452,6 +555,17 @@ function M.generate(difficulty, rng, yield, method)
         while grade < spec.minGrade and clues > spec.minClues and pos <= #order do
             digTo(clues - 2)
             grade = M.grade(puzzle)
+        end
+        if grade > spec.maxGrade then
+            shuffle(removed, rng)
+            for _, i in ipairs(removed) do
+                local j = 82 - i
+                puzzle[i], puzzle[j] = solution[i], solution[j]
+                clues = clues + ((i == j) and 1 or 2)
+                grade = M.grade(puzzle)
+                if grade <= spec.maxGrade then break end
+                if yield then yield() end
+            end
         end
 
         local result = { puzzle = puzzle, solution = solution, grade = grade, clues = clues }

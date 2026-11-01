@@ -9,7 +9,8 @@ local LEVELS = {
     { key = "easy", name = "Easy", about = "Lots of starting numbers. Scanning rows and boxes is enough." },
     { key = "medium", name = "Medium", about = "Fewer clues. Some cells only have one number left." },
     { key = "hard", name = "Hard", about = "Needs notes and tricks like pointing pairs." },
-    { key = "expert", name = "Expert", about = "As few clues as possible. Advanced logic required." },
+    { key = "expert", name = "Expert", about = "Few clues. Needs X-Wings, Swordfish or XY-Wings." },
+    { key = "master", name = "Master", about = "The fewest clues. Needs logic beyond those, like chains." },
 }
 
 function Difficulty.new(app)
@@ -57,20 +58,20 @@ function Difficulty:draw()
     ui.text("New puzzle", 64, 40, 36, "bold")
 
     local stats = self.app.stats
-    local x, w, h, y0 = 64, 592, 78, 104
+    local x, w, h, y0 = 64, 592, 64, 96
     for k, level in ipairs(LEVELS) do
-        local y = y0 + (k - 1) * (h + 8)
+        local y = y0 + (k - 1) * (h + 6)
         local selected = (k == self.sel)
         if selected then
             theme.set("panel")
             ui.rect("fill", x - 16, y, w + 32, h, 10)
             theme.set("accent")
-            ui.rect("fill", x - 16, y + 14, 5, h - 28, 2)
+            ui.rect("fill", x - 16, y + 12, 5, h - 24, 2)
         end
         theme.set(selected and "text" or "muted")
-        ui.centered(level.name, x, y + 27, 26, "bold", "left")
+        ui.centered(level.name, x, y + 22, 24, "bold", "left")
         theme.set("muted")
-        ui.centered(level.about, x, y + 55, 15, "regular", "left")
+        ui.centered(level.about, x, y + 46, 15, "regular", "left")
 
         local entry = stats[level.key]
         local right
@@ -81,7 +82,7 @@ function Difficulty:draw()
         end
         if right then
             theme.set(selected and "text" or "muted")
-            ui.centered(right, x + w, y + 27, 18, "regular", "right")
+            ui.centered(right, x + w, y + 22, 18, "regular", "right")
         end
     end
 

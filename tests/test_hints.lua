@@ -62,6 +62,8 @@ for _, diff in ipairs(sudoku.DIFFICULTIES) do
         end
         check(diff .. " solved by hints", table.concat(values) == table.concat(r.solution))
     end
+    -- Below Master, every puzzle can be solved with the techniques hints explain.
+    if diff ~= "master" then check(diff .. ": no advanced reveals", advanced == 0, advanced) end
     local parts = {}
     for t, n in pairs(techniques) do parts[#parts + 1] = t .. "=" .. n end
     table.sort(parts)
@@ -94,6 +96,80 @@ check("final step places a number", last.action == "place" and last.digit == r.s
 check("final step has text", type(last.text) == "string" and #last.text > 20)
 
 check("an 8", hints.article(8) == "an 8" and hints.article(7) == "a 7")
+
+-- Pattern finders on hand-made candidates (every digit open everywhere,
+-- except where a pattern is cut out).
+local DB = sudoku.DIGIT_BIT
+local function openBoard()
+    local v, c = {}, {}
+    for i = 1, 81 do v[i], c[i] = 0, 511 end
+    return v, c
+end
+local function cell(r, c) return r * 9 + c + 1 end
+local function removalSet(e)
+    local s = {}
+    for _, r in ipairs(e.removals) do s[r[1] .. ":" .. r[2]] = true end
+    return s
+end
+
+-- X-Wing: in rows 1 and 5, 5 only fits in columns 2 and 7.
+local v, c = openBoard()
+for _, r in ipairs({ 0, 4 }) do
+    for col = 0, 8 do
+        if col ~= 1 and col ~= 6 then c[cell(r, col)] = c[cell(r, col)] - DB[5] end
+    end
+end
+local e = hints._fishes(c)
+check("X-Wing found", e and e.technique == "xWing" and e.digit == 5, e and e.technique)
+if e then
+    local s = removalSet(e)
+    check("X-Wing removes 5 from both columns elsewhere", #e.removals == 14
+        and s[cell(2, 1) .. ":5"] and s[cell(8, 6) .. ":5"] and not s[cell(0, 1) .. ":5"], #e.removals)
+end
+
+-- Swordfish in columns: 3 only fits in rows 1, 4 and 8 of columns 1, 5 and 9,
+-- and not in all three of them in any column.
+v, c = openBoard()
+local fishCols, fishRows = { 0, 4, 8 }, { 0, 3, 7 }
+local keep = { [0] = { 0, 3 }, [4] = { 3, 7 }, [8] = { 0, 7 } }
+for _, col in ipairs(fishCols) do
+    local allowed = {}
+    for _, r in ipairs(keep[col]) do allowed[r] = true end
+    for r = 0, 8 do
+        if not allowed[r] then c[cell(r, col)] = c[cell(r, col)] - DB[3] end
+    end
+end
+e = hints._fishes(c)
+check("Swordfish found", e and e.technique == "swordfish" and e.digit == 3, e and e.technique)
+if e then
+    local s = removalSet(e)
+    local ok = true
+    for _, r in ipairs(fishRows) do
+        for col = 0, 8 do
+            local inFish = col == 0 or col == 4 or col == 8
+            if inFish == (s[cell(r, col) .. ":3"] or false) then ok = false end
+        end
+    end
+    check("Swordfish clears its rows outside the three columns", ok and #e.removals == 18, #e.removals)
+end
+
+-- XY-Wing: pivot r1c1 is 1 or 2, wings r1c5 (1 or 3) and r5c1 (2 or 3).
+-- Only r5c5 sees both wings, so it loses the 3.
+v, c = openBoard()
+local p, qa, qb = cell(0, 0), cell(0, 4), cell(4, 0)
+c[p], c[qa], c[qb] = DB[1] + DB[2], DB[1] + DB[3], DB[2] + DB[3]
+e = hints._xyWing(v, c)
+check("XY-Wing found", e and e.technique == "xyWing" and e.pivot == p and e.digit == 3, e and e.technique)
+if e then
+    check("XY-Wing removes 3 where both wings are seen", #e.removals == 1
+        and e.removals[1][1] == cell(4, 4) and e.removals[1][2] == 3)
+    check("XY-Wing wings follow the pivot's digits", e.wings[1] == qa and e.digits[1] == 1 and e.digits[2] == 2)
+end
+
+-- An XY-Wing whose wings share the pivot's digit isn't one.
+v, c = openBoard()
+c[p], c[qa], c[qb] = DB[1] + DB[2], DB[1] + DB[3], DB[1] + DB[3]
+check("no XY-Wing with matching wings", hints._xyWing(v, c) == nil)
 
 print(string.format("\n%d passed, %d failed", passed, failed))
 os.exit(failed == 0 and 0 or 1)

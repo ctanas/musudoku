@@ -26,6 +26,7 @@ local WIN_CARD_AT = 1.7  -- seconds after solving before the result card
 local CONFETTI = { "accent", "user", "given", "boxLine", "note" }
 local DIFFICULTY_LABELS = { -- side panel header, longest first
     easy = { "EASY" }, medium = { "MEDIUM", "MED" }, hard = { "HARD" }, expert = { "EXPERT" },
+    master = { "MASTER" },
 }
 local HEAD_LABEL, HEAD_CLOCK, HEAD_GAP = 24, 40, 10 -- header sizes and spacing
 

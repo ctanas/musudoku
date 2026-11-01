@@ -230,6 +230,120 @@ local function subsets(values, cand)
     end
 end
 
+-- Fish: X-Wing (2 lines) and Swordfish (3). For a digit, `size` rows whose
+-- places for it fall within `size` columns between them, or the same with rows
+-- and columns swapped.
+local function lineUnit(across, k)
+    return (across == 0) and (k + 1) or (k + 10) -- row k or column k
+end
+
+local function fishes(cand)
+    for size = 2, 3 do
+        for d = 1, 9 do
+            local m = DB[d]
+            for across = 0, 1 do -- 0: base rows, cover columns
+                local lines = {}
+                for k = 0, 8 do
+                    local cells = cellsWith(cand, UNITS[lineUnit(across, k)], m)
+                    if #cells >= 2 and #cells <= size then
+                        local cover = {}
+                        for _, i in ipairs(cells) do cover[(across == 0) and COL[i] or ROW[i]] = true end
+                        lines[#lines + 1] = { k = k, cells = cells, cover = cover }
+                    end
+                end
+                local function try(chosen)
+                    local cover, base, pattern = {}, {}, {}
+                    local n = 0
+                    for _, line in ipairs(chosen) do
+                        base[line.k] = true
+                        for j in pairs(line.cover) do
+                            if not cover[j] then cover[j], n = true, n + 1 end
+                        end
+                        for _, i in ipairs(line.cells) do pattern[#pattern + 1] = i end
+                    end
+                    if n ~= size then return nil end
+                    local others, coverUnits, baseUnits = {}, {}, {}
+                    for j in pairs(cover) do
+                        local u = lineUnit(1 - across, j)
+                        coverUnits[#coverUnits + 1] = u
+                        for _, i in ipairs(UNITS[u]) do
+                            if not base[(across == 0) and ROW[i] or COL[i]] then others[#others + 1] = i end
+                        end
+                    end
+                    for k in pairs(base) do baseUnits[#baseUnits + 1] = lineUnit(across, k) end
+                    table.sort(coverUnits)
+                    table.sort(baseUnits)
+                    local removals = removalsIn(cand, others, m)
+                    if #removals == 0 then return nil end
+                    return {
+                        kind = "elim", technique = (size == 2) and "xWing" or "swordfish", digit = d,
+                        base = baseUnits, cover = coverUnits, pattern = pattern, removals = removals,
+                    }
+                end
+                local n = #lines
+                for a = 1, n do
+                    for b = a + 1, n do
+                        if size == 2 then
+                            local e = try({ lines[a], lines[b] })
+                            if e then return e end
+                        else
+                            for c = b + 1, n do
+                                local e = try({ lines[a], lines[b], lines[c] })
+                                if e then return e end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function sees(i, j)
+    return ROW[i] == ROW[j] or COL[i] == COL[j] or BOX[i] == BOX[j]
+end
+
+-- XY-Wing: a cell that can only be x or y (the pivot), and two cells it sees
+-- that can only be x or z and y or z. One of those two must be z.
+local function xyWing(values, cand)
+    for p = 1, 81 do
+        local pc = cand[p]
+        if values[p] == 0 and POP[pc] == 2 then
+            local wings = {}
+            for _, q in ipairs(PEERS[p]) do
+                local qc = cand[q]
+                if values[q] == 0 and POP[qc] == 2 and qc ~= pc and POP[band(qc, pc)] == 1 then
+                    wings[#wings + 1] = q
+                end
+            end
+            for a = 1, #wings do
+                for b = a + 1, #wings do
+                    local qa, qb = wings[a], wings[b]
+                    local z = band(cand[qa], bnot(pc))
+                    if z == band(cand[qb], bnot(pc)) and band(cand[qa], pc) ~= band(cand[qb], pc) then
+                        local both = {}
+                        for _, j in ipairs(PEERS[qa]) do
+                            if j ~= qb and j ~= p and sees(j, qb) then both[#both + 1] = j end
+                        end
+                        local removals = removalsIn(cand, both, z)
+                        if #removals > 0 then
+                            -- wings ordered to match the pivot's digits (x first)
+                            local x = BD[band(cand[qa], pc)]
+                            local y = BD[band(cand[qb], pc)]
+                            if x > y then qa, qb, x, y = qb, qa, y, x end
+                            return {
+                                kind = "elim", technique = "xyWing", digit = BD[z], pivot = p,
+                                wings = { qa, qb }, digits = { x, y }, seesBoth = both,
+                                pattern = { p, qa, qb }, removals = removals,
+                            }
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
 -- Which earlier eliminations does a step depend on? `needs(cell, digit)` is
 -- true if removing that candidate earlier could have changed the step.
 local function needsFn(step)
@@ -248,6 +362,17 @@ local function needsFn(step)
     elseif t == "hiddenPair" then
         local a, b = step.digits[1], step.digits[2]
         return function(i, d) return (d == a or d == b) and not pattern[i] and inUnit(step.unit, i) end
+    elseif t == "xWing" or t == "swordfish" then
+        -- the fish exists because the digit was ruled out elsewhere in its base lines
+        return function(i, d)
+            if d ~= step.digit or pattern[i] then return false end
+            for _, u in ipairs(step.base) do
+                if inUnit(u, i) then return true end
+            end
+            return false
+        end
+    elseif t == "xyWing" then
+        return function(i) return pattern[i] == true end
     end
     return function() return true end
 end
@@ -309,7 +434,7 @@ function hints.search(values, solution, fixed, preferCell)
             steps[#steps + 1] = place
             return { steps = steps }
         end
-        local e = lockedCandidates(cand) or subsets(values, cand)
+        local e = lockedCandidates(cand) or subsets(values, cand) or fishes(cand) or xyWing(values, cand)
         if not e then break end
         for _, r in ipairs(e.removals) do
             cand[r[1]] = band(cand[r[1]], bnot(DB[r[2]]))
@@ -408,7 +533,7 @@ end
 local function describeElimination(e, cand)
     local step = { action = "remove", removals = e.removals, marks = {}, blockers = {}, focusCells = setOf(e.pattern) }
     for _, r in ipairs(e.removals) do step.marks[#step.marks + 1] = { r[1], r[2], "removed" } end
-    local name = unitName(e.unit)
+    local name = e.unit and unitName(e.unit) -- fish and wings span several units
     local t = e.technique
     if t == "pointing" or t == "claiming" then
         local d, other = e.digit, unitName(e.line)
@@ -438,6 +563,37 @@ local function describeElimination(e, cand)
             step.text = "These three cells can only hold " .. ds .. " between them, so no other cell in this "
                 .. name .. " can be " .. ds .. "."
         end
+    elseif t == "xWing" or t == "swordfish" then
+        local d = e.digit
+        for _, i in ipairs(e.pattern) do step.marks[#step.marks + 1] = { i, d, "focus" } end
+        step.unitCells = unitSet(unpack(e.base))
+        local base = (e.base[1] <= 9) and "rows" or "columns"
+        local cover = (base == "rows") and "columns" or "rows"
+        if t == "xWing" then
+            step.title = "X-Wing"
+            step.text = "In these two " .. base .. ", " .. d .. " can only go in the same two " .. cover
+                .. ". Either way, those " .. cover .. " get their " .. d .. " from these " .. base
+                .. ", so " .. d .. " can't go anywhere else in them."
+        else
+            step.title = "Swordfish"
+            step.text = "In these three " .. base .. ", " .. d .. " can only go in three " .. cover
+                .. " between them. Those " .. cover .. " get their " .. d .. "s from these " .. base
+                .. ", so " .. d .. " can't go anywhere else in them."
+        end
+    elseif t == "xyWing" then
+        local x, y, z = e.digits[1], e.digits[2], e.digit
+        step.marks[#step.marks + 1] = { e.pivot, x, "focus" }
+        step.marks[#step.marks + 1] = { e.pivot, y, "focus" }
+        step.marks[#step.marks + 1] = { e.wings[1], x, "focus" }
+        step.marks[#step.marks + 1] = { e.wings[1], z, "focus" }
+        step.marks[#step.marks + 1] = { e.wings[2], y, "focus" }
+        step.marks[#step.marks + 1] = { e.wings[2], z, "focus" }
+        step.unitCells = setOf(e.seesBoth)
+        step.target = e.pivot
+        step.title = "XY-Wing"
+        step.text = "The outlined cell is " .. x .. " or " .. y .. ". If " .. x .. ", the cell with "
+            .. x .. " and " .. z .. " is " .. z .. ". If " .. y .. ", the cell with " .. y .. " and "
+            .. z .. " is. So no cell seeing both can be " .. z .. "."
     else -- hidden pair
         local a, b = e.digits[1], e.digits[2]
         for _, i in ipairs(e.pattern) do
@@ -450,6 +606,9 @@ local function describeElimination(e, cand)
     end
     return step
 end
+
+-- For tests: the pattern finders on their own.
+hints._fishes, hints._xyWing = fishes, xyWing
 
 function hints.build(values, solution, fixed, preferCell)
     local found = hints.search(values, solution, fixed, preferCell)
@@ -469,7 +628,7 @@ function hints.build(values, solution, fixed, preferCell)
         if not found.cell then return {} end
         return { {
             title = "This needs advanced logic",
-            text = "No simple technique works from here, so this hint just reveals a number.",
+            text = "None of the techniques hints explain works from here, so this hint just reveals a number.",
             action = "place", target = found.cell, digit = found.digit,
             unitCells = {}, focusCells = {}, blockers = {}, marks = {},
         } }

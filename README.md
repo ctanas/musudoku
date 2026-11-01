@@ -8,14 +8,15 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
 ## Features
 
-- Four difficulties. Puzzles are generated on the device, always have exactly one
+- Five difficulties. Puzzles are generated on the device, always have exactly one
   solution, and are graded by the techniques a person needs to solve them. Two
   generators to choose from in Settings: Classic and Dancing Links (see "How puzzles
   are made" below):
   - **Easy**: scanning rows and boxes (hidden singles)
   - **Medium**: adds cells with only one possible number (naked singles)
   - **Hard**: needs pointing pairs, or naked and hidden pairs and triples
-  - **Expert**: needs techniques beyond those
+  - **Expert**: needs an X-Wing, Swordfish or XY-Wing
+  - **Master**: needs techniques beyond those, such as chains
 - Pen and pencil modes, one-button note filling, notes that clear themselves, and a
   Large notes setting for easier reading
 - Two ways to enter numbers (Settings → Input): **Cell first** picks a cell, then its
@@ -95,7 +96,7 @@ the puzzle) are ignored. Up to 100,000 puzzles per file are used, so split bigge
 collections into several files.
 
 **Checking and grading.** When you start a puzzle the game checks it has exactly one
-solution, skipping it with a message if not, and grades it Easy to Expert with the
+solution, skipping it with a message if not, and grades it Easy to Master with the
 same rules as generated puzzles. Pack puzzles don't count toward Statistics. Progress
 is saved per file name, and changing a file's contents resets its progress.
 
@@ -137,13 +138,14 @@ person could make right now, with the board highlighting the cells involved:
   column or box.
 - **Last empty cell** in a row, column or box.
 - **Groundwork steps** for harder puzzles: pointing pairs, numbers locked in a box,
-  naked pairs and triples, and hidden pairs. Ruled-out candidates are struck through
-  in red, and A removes them from your notes. Only steps the final move depends on
-  are shown.
+  naked pairs and triples, hidden pairs, and for Expert puzzles X-Wings, Swordfish
+  and XY-Wings. Ruled-out candidates are struck through in red, and A removes them
+  from your notes. Only steps the final move depends on are shown.
 - **Mistakes come first:** if a number on the board is wrong, the hint points it out
   and A erases it.
-- **Fallback:** for moves beyond these techniques (some Expert puzzles), it says so and
-  offers the number.
+- **Fallback:** for moves beyond these techniques (Master puzzles), it says so and
+  offers the number. Every puzzle up to Expert can be solved with explained hints
+  alone.
 
 In the hint: A does the step's action, Y goes to the next step, L1 goes back, B
 closes. Opening a hint counts as one hint. Hints work from the numbers on the board, not your notes, so
@@ -187,9 +189,14 @@ never a point where two different answers would both be right.
    other than the answer. If it could, the pair goes back. So no clue is ever removed
    unless the answer stays the only solution.
 3. The puzzle is graded by the techniques it needs (see Features). If it's too easy
-   for the chosen difficulty, more clues come out, each pair checked the same way.
-   Each difficulty gets several tries, and if none matches exactly, the closest one
-   is used. It too has only one solution.
+   for the chosen difficulty, more clues come out, each pair checked the same way. If
+   it's too hard, removed pairs go back one at a time until it isn't. More clues can
+   never allow a second solution. Each difficulty gets several tries, and if none
+   matches exactly, the closest one is used. It too has only one solution.
+
+   Fully dug-out puzzles mostly need either very little or a lot: only about 1 in 40
+   needs exactly an X-Wing, Swordfish or XY-Wing. Putting pairs back is what lets
+   Expert puzzles come out at that level reliably.
 
 **Two generators.** Settings → Puzzle generator picks the solver used in steps 1 and
 2. Both follow the steps above, so the puzzles are equally unique and graded the same
@@ -314,9 +321,6 @@ make the package much smaller.
 
 ## TODO
 
-4. **More techniques and a Master difficulty.** Add X-Wing, Swordfish and XY-Wing to
-   the grader and to explained hints, so Expert hints can always explain the move
-   instead of offering the number. Puzzles that need more than these become Master.
 5. **Pack stats and history.** Best times per pack, and a list of recent solves. Packs
    only track which puzzles are solved now.
 6. **Streaks.** Current and best streak per difficulty in Statistics. A streak breaks

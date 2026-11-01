@@ -53,7 +53,7 @@ check("clashing givens have no solution", sudoku.countSolutions(bad, 2) == 0)
 local inkala = parse([[
 8..........36......7..9.2...5...7.......457.....1...3...1....68..85...1..9....4..]])
 check("Inkala unique", sudoku.countSolutions(inkala, 2) == 1)
-check("Inkala grades advanced", sudoku.grade(inkala) == 5, "grade " .. sudoku.grade(inkala))
+check("Inkala grades beyond XY-Wing", sudoku.grade(inkala) == 6, "grade " .. sudoku.grade(inkala))
 
 -- Random solutions
 math.randomseed(tonumber(os.getenv("SEED") or "") or os.time())

@@ -6,6 +6,36 @@ local hints = require("src.hints")
 
 local M = {}
 
+-- Starts Expert puzzles and advances each with plain hint steps until a hint
+-- uses one of `wanted` techniques, then opens it at that step.
+function M.seekTechnique(app, wanted, press)
+    local sudoku = require("src.sudoku")
+    local rng = love.math.newRandomGenerator(7)
+    for _ = 1, 200 do
+        app.startGame(sudoku.generate("expert", function(n) return rng:random(n) end), "expert")
+        local g = app.game
+        for _ = 1, 81 do
+            local found = hints.search(g.values, g.solution, g.fixed)
+            if not found.steps then break end
+            for k, s in ipairs(found.steps) do
+                if wanted[s.technique] then
+                    press("select") -- notes on, so "Remove from notes" shows
+                    press("y")
+                    local scene = app.top()
+                    if scene.hint then
+                        scene.hint.index = k
+                        scene:focusHint()
+                    end
+                    return 0.8
+                end
+            end
+            local last = found.steps[#found.steps]
+            g.values[last.cell], g.notes[last.cell] = last.digit, 0
+        end
+    end
+    return 0.2
+end
+
 function M.start(app)
     love.filesystem.createDirectory("shots")
     local function shot(name)
@@ -75,6 +105,11 @@ function M.start(app)
             app.settings.theme = "cyanotype"
             app.applySettings()
         end,
+        -- Expert techniques: X-Wing or Swordfish, then XY-Wing
+        function() return M.seekTechnique(app, { xWing = true, swordfish = true }, press) end,
+        function() shot("7_fish") end,
+        function() press("b") return M.seekTechnique(app, { xyWing = true }, press) end,
+        function() shot("8_xy_wing") end,
     }
 
     local origUpdate = love.update

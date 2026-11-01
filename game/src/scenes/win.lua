@@ -6,7 +6,7 @@ local daily = require("src.daily")
 local Win = { overlay = true }
 Win.__index = Win
 
-local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert" }
+local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
 
 function Win.new(app, info)
     return setmetatable({ app = app, t = 0, info = info or {} }, Win)
