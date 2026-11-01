@@ -35,7 +35,9 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   board-wide wave and confetti
 - Auto-save, with Continue on the title screen
 - Statistics per difficulty: started, solved, perfect (no hints, no mistakes), best
-  and average time, plus a Recent page listing the last 50 solves of every kind
+  and average time. A Streaks page shows puzzles solved in a row per difficulty (starting
+  a new one before finishing the current one ends it) and the daily streak, and a
+  Recent page lists the last 50 solves of every kind
 - Nine themes. Light: Paper, Sakura, Frankfurt (Lufthansa blue and yellow) and
   Solarized Light. Dark: Cyanotype (default), Solarized Dark, Nord, Gruvbox, and
   Chalkboard (green slate with chalk dust and a wooden frame around the board)
@@ -298,6 +300,7 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
   src/packs.lua      Puzzle pack folder, file formats, indexing, progress
   src/daily.lua      Daily puzzle dates, seeds and streaks
   src/history.lua    Recent solves for the Statistics page
+  src/records.lua    Per-difficulty counts, best times and streaks
   src/hints.lua      Explained hints: finds moves and writes explanations
   src/ui.lua         720x480 layout scaling, text and button glyphs
   src/input.lua      Gamepad and keyboard mapping, hold-to-repeat
@@ -321,11 +324,6 @@ devices. To use a different
 runtime, set `LOVE_RUNTIME=/path/to/dir` containing `love` and `libs.aarch64/`.
 That bundle includes libraries the game doesn't need, so a trimmed runtime would
 make the package much smaller.
-
-## TODO
-
-6. **Streaks.** Current and best streak per difficulty in Statistics. A streak breaks
-   when a new puzzle is started while the current one is unsolved.
 
 ## Credits and licenses
 

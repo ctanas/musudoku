@@ -11,6 +11,7 @@ local packs = require("src.packs")
 local sudoku = require("src.sudoku")
 local daily = require("src.daily")
 local history = require("src.history")
+local records = require("src.records")
 
 local VERSION = "1.2.3"
 
@@ -127,6 +128,16 @@ function app.savePackProgress()
     storage.savePackProgress(packs.saveableProgress(app.packProgress))
 end
 
+-- Called just before the game in progress is replaced. Leaving a generated
+-- puzzle unsolved ends that difficulty's streak.
+local function replaceGame()
+    local g = app.game
+    if g and not g.solved and not g.pack and not g.daily and app.stats[g.difficulty] then
+        records.abandon(app.stats[g.difficulty])
+        app.saveStats()
+    end
+end
+
 local GRADE_DIFFICULTY = { "easy", "medium", "hard", "hard", "expert", "master" }
 
 -- Start puzzle n of a pack. Returns true, or false and a reason to show.
@@ -145,6 +156,7 @@ function app.startPackPuzzle(file, index, n)
         return false, "Puzzle " .. ui.number(n) .. " has more than one solution, so it was skipped."
     end
     local grade = sudoku.grade(grid)
+    replaceGame()
     app.game = Game.new({ puzzle = grid, solution = solution }, GRADE_DIFFICULTY[grade] or "master")
     app.game.pack = {
         file = file.file, name = file.name, path = file.path,
@@ -223,6 +235,7 @@ function app.openDaily()
 end
 
 function app.startDaily(generated, difficulty, key)
+    replaceGame()
     app.game = Game.new(generated, difficulty)
     app.game.daily = key
     app.saveGame()
@@ -230,6 +243,7 @@ function app.startDaily(generated, difficulty, key)
 end
 
 function app.startGame(generated, difficulty)
+    replaceGame()
     app.game = Game.new(generated, difficulty)
     local entry = app.stats[difficulty]
     if entry then entry.started = entry.started + 1 end
@@ -269,16 +283,7 @@ function app.recordSolve()
         return false
     end
     local entry = app.stats[g.difficulty]
-    local best = false
-    if entry then
-        entry.solved = entry.solved + 1
-        entry.total = entry.total + t
-        if g.hints == 0 and g.mistakes == 0 then entry.perfect = entry.perfect + 1 end
-        if g.hints == 0 and (entry.best == 0 or t < entry.best) then
-            entry.best = t
-            best = true
-        end
-    end
+    local best = entry and records.solve(entry, t, g.hints, g.mistakes) or false
     app.saveStats()
     storage.clearGame()
     return best

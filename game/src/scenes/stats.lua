@@ -3,8 +3,9 @@ local theme = require("src.theme")
 local sound = require("src.sound")
 local storage = require("src.storage")
 local history = require("src.history")
+local daily = require("src.daily")
 
--- Statistics, in pages: per-difficulty numbers and recent solves.
+-- Statistics, in pages: per-difficulty numbers, streaks and recent solves.
 -- L1 / R1 or left / right switch pages.
 local Stats = {}
 Stats.__index = Stats
@@ -25,7 +26,7 @@ local COLUMNS = {
     { label = "Average", x = 656 },
 }
 
-local PAGES = { "Puzzles", "Recent" }
+local PAGES = { "Puzzles", "Streaks", "Recent" }
 local RECENT_ROWS = 8
 
 function Stats.new(app)
@@ -68,7 +69,8 @@ function Stats:action(a)
         else
             app.push("confirm", {
                 title = "Reset statistics?",
-                body = "Solve counts and best times for every difficulty will be cleared.",
+                body = "Solve counts, best times and streaks for every difficulty will be cleared. "
+                    .. "Daily puzzle records and recent solves stay.",
                 yes = "Reset",
                 onYes = function()
                     app.stats = storage.emptyStats()
@@ -143,6 +145,44 @@ function Stats:drawPuzzles()
     ui.text(summary, 64, 392, 16, "regular", "left", 592)
 end
 
+function Stats:drawStreaks()
+    local stats, y = self.app.stats, 126
+    theme.set("muted")
+    ui.centered("Current", 470, y, 15, "regular", "right")
+    ui.centered("Best", 656, y, 15, "regular", "right")
+    theme.set("line")
+    love.graphics.setLineWidth(1)
+    love.graphics.line(64, y + 18, 656, y + 18)
+
+    local rows = {}
+    for _, level in ipairs(LEVELS) do
+        local e = stats[level.key]
+        rows[#rows + 1] = { level.name, e.streak, e.bestStreak, "" }
+    end
+    local days = self.app.daily.days
+    local today = daily.today()
+    rows[#rows + 1] = { "Daily", today and daily.streak(days, today.key) or 0, daily.bestStreak(days), " days" }
+
+    for k, row in ipairs(rows) do
+        local cy = y + 18 + k * 38 - 12
+        theme.set("text")
+        ui.centered(row[1], 64, cy, 22, "bold", "left")
+        for c, x in ipairs({ 470, 656 }) do
+            local n = row[c + 1]
+            theme.set(n > 0 and "text" or "muted")
+            local unit = row[4] ~= "" and (n == 1 and " day" or " days") or ""
+            ui.centered(n .. unit, x, cy, 20, "regular", "right")
+        end
+        theme.set("line")
+        love.graphics.line(64, cy + 19, 656, cy + 19)
+    end
+
+    theme.set("muted")
+    ui.text("A streak counts puzzles solved in a row. Starting a new puzzle before finishing the one "
+        .. "in progress ends that difficulty's streak. The daily streak counts days in a row.",
+        64, 388, 15, "regular", "left", 592)
+end
+
 function Stats:drawRecent()
     local list = self.app.history
     local y = 126
@@ -192,7 +232,10 @@ function Stats:draw()
     ui.text("Statistics", 64, 40, 36, "bold")
     self:drawTabs()
 
-    if PAGES[self.page] == "Recent" then self:drawRecent() else self:drawPuzzles() end
+    local page = PAGES[self.page]
+    if page == "Recent" then self:drawRecent()
+    elseif page == "Streaks" then self:drawStreaks()
+    else self:drawPuzzles() end
 
     local reset = (PAGES[self.page] == "Recent") and "Clear" or "Reset"
     ui.hints({ { "L1 / R1", "Pages" } }, 24, 452, "left")

@@ -50,19 +50,9 @@ end
 function Win:draw()
     local p = ui.ease(self.t / 0.22)
     local g = self.app.game
-    local w, h = 380, 262
-    local x, y = ui.card(w, h, p)
-
-    theme.set("muted", p)
     local heading = DIFFICULTY_NAMES[g.difficulty] .. " puzzle"
     if g.pack then heading = g.pack.name .. ", puzzle " .. ui.number(g.pack.index) end
     if g.daily then heading = "Daily puzzle, " .. daily.label(g.daily) end
-    ui.text(heading, x + 32, y + 26, 18, "regular", "left", w - 64)
-    theme.set("text", p)
-    ui.text("Solved", x + 32, y + 48, 38, "bold")
-
-    theme.set("mark", p)
-    ui.centered(ui.formatTime(g.elapsed), x + w - 32, y + 72, 38, "bold", "right")
 
     local stats = self.app.stats[g.difficulty]
     if g.pack or g.daily then stats = nil end
@@ -88,6 +78,10 @@ function Win:draw()
     elseif stats and stats.best > 0 then
         lines[#lines + 1] = { "Best time " .. ui.formatTime(stats.best), false }
     end
+    if stats and stats.streak > 1 then
+        local best = stats.streak >= stats.bestStreak
+        lines[#lines + 1] = { stats.streak .. " solved in a row" .. (best and ", your best" or ""), best }
+    end
     local parts = {}
     if self.app.settings.mistakes then
         parts[#parts + 1] = g.mistakes == 1 and "1 mistake" or (g.mistakes .. " mistakes")
@@ -102,6 +96,19 @@ function Win:draw()
     if g.hints > 0 and not g.pack and not g.daily then
         lines[#lines + 1] = { "Solves with hints don't count toward best times.", false, 14 }
     end
+
+    -- the card grows with its lines
+    local w, linesH = 380, 0
+    for _, line in ipairs(lines) do linesH = linesH + (line[3] and 22 or 28) end
+    local h = math.max(262, 126 + linesH + 52)
+    local x, y = ui.card(w, h, p)
+
+    theme.set("muted", p)
+    ui.text(heading, x + 32, y + 26, 18, "regular", "left", w - 64)
+    theme.set("text", p)
+    ui.text("Solved", x + 32, y + 48, 38, "bold")
+    theme.set("mark", p)
+    ui.centered(ui.formatTime(g.elapsed), x + w - 32, y + 72, 38, "bold", "right")
 
     local ly = y + 126
     for _, line in ipairs(lines) do

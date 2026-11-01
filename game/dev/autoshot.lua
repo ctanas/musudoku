@@ -82,6 +82,7 @@ function M.start(app)
         function()
             -- complete the board except one cell, then enter the last number
             local g = app.game
+            app.stats[g.difficulty].streak = 2 -- so the win card shows a streak
             local last = firstEmpty(1)
             for i = 1, 81 do
                 if i ~= last and not g.fixed[i] then g.values[i] = g.solution[i] g.notes[i] = 0 end
@@ -96,9 +97,15 @@ function M.start(app)
         function() press("b") return 0.4 end,
         function() app.push("stats") return 0.4 end,
         function() shot("12_stats") end,
+        function()
+            app.stats.medium.streak, app.stats.medium.bestStreak = 4, 6
+            press("r1")
+            return 0.3
+        end,
+        function() shot("12b_stats_streaks") end,
         function() press("r1") return 0.3 end,
-        function() shot("12b_stats_recent") end,
-        function() press("l1") return 0.2 end,
+        function() shot("12c_stats_recent") end,
+        function() press("r1") return 0.2 end,
         function() press("b") return 0.3 end,
         function()
             app.settings.theme = "paper"
