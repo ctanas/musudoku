@@ -158,7 +158,8 @@ they're right even when your notes are incomplete.
 
 **Settings → Number pad** sets where you pick the number. With **Side panel** (the
 default), the pad is the panel's nine number tiles: A starts picking there, and the
-chosen tile is tinted and outlined. **Pop-up** opens a 3x3 pad next to the cell.
+chosen tile is tinted and outlined. Meanwhile the cursor on the board glows softly,
+to show the cell is waiting for its number. **Pop-up** opens a 3x3 pad next to the cell.
 Distraction-free mode has no side panel, so it always uses the pop-up.
 
 In pen mode the pad closes after placing a number. In pencil mode it stays open so

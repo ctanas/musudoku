@@ -21,6 +21,8 @@ local PAD_H = PAD_W
 
 local FLASH_TIME = 0.7   -- one cell's flash
 local RING_TIME = 0.65   -- glow pulse around a completed area
+local GLOW_PERIOD = 1.6  -- one breath of the cursor glow while picking in the panel
+local GLOW_FPS = 20      -- the glow is redrawn this often, not every frame
 local LIFT = 0.16        -- how far digits bounce during a flash
 local WIN_CARD_AT = 1.7  -- seconds after solving before the result card
 local CONFETTI = { "accent", "user", "given", "boxLine", "note" }
@@ -61,6 +63,14 @@ end
 -- Otherwise the pad pops up next to the cell.
 function Play:padInPanel()
     return self.app.settings.pad == "panel" and self:panelShown()
+end
+
+-- While the number is picked in the side panel, the cursor's cell waits for
+-- it and glows, breathing slowly, so it's clear the board expects an entry
+-- from the right. Returns 0 when not picking there, else 0.4 to 1.
+function Play:cursorGlow()
+    if not (self.pad and self:padInPanel()) then return 0 end
+    return 0.7 + 0.3 * math.cos(2 * math.pi * (self.t - self.pad.t) / GLOW_PERIOD)
 end
 
 function Play:layout()
@@ -505,6 +515,16 @@ function Play:update(dt)
 
     if self.shake > 0 then self.shake = math.max(0, self.shake - dt) end
 
+    -- a slow breath needs few frames: ask for GLOW_FPS rather than being
+    -- busy() at the full frame rate
+    if self:cursorGlow() > 0 then
+        local step = math.floor(self.t * GLOW_FPS)
+        if step ~= self.glowStep then
+            self.glowStep = step
+            self.app.requestRedraw()
+        end
+    end
+
     for i, start in pairs(self.flash) do
         if self.t > start + FLASH_TIME then self.flash[i] = nil end
     end
@@ -781,9 +801,22 @@ function Play:drawBoard()
     if not self.winT and not hint then
         local dx = 0
         if self.shake > 0 then dx = math.sin(self.shake * 70) * 4 * (self.shake / 0.25) end
+        local x, y, s = self.vx + 3 + dx, self.vy + 3, CS - 6
+        -- picking in the side panel: a soft halo, fading outwards. It stays
+        -- outside the outline, clear of the corner notes, and has no fill
+        -- (accent over the darker boards turns muddy).
+        local glow = self:cursorGlow()
+        if glow > 0 then
+            love.graphics.setLineWidth(2.5)
+            for k = 1, 3 do
+                local spread = k * 2.5
+                theme.set("accent", glow * (0.8 - k * 0.2))
+                ui.rect("line", x - spread, y - spread, s + spread * 2, s + spread * 2, 6 + spread)
+            end
+        end
         theme.set("mark")
         love.graphics.setLineWidth(3)
-        ui.rect("line", self.vx + 3 + dx, self.vy + 3, CS - 6, CS - 6, 6)
+        ui.rect("line", x, y, s, s, 6)
     end
 end
 
