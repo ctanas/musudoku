@@ -1,18 +1,27 @@
 local ui = require("src.ui")
 local theme = require("src.theme")
 local sound = require("src.sound")
+local input = require("src.input")
 
 local Settings = {}
 Settings.__index = Settings
 
+-- `about` is a string, or a function that builds it (for button names that
+-- follow the Shoulder buttons setting).
 local ROWS = {
     { key = "theme", label = "Theme", about = "Light themes: Paper, Sakura, Frankfurt, Solarized Light. Dark: Cyanotype, Solarized Dark, Nord, Gruvbox, and Chalkboard with chalk dust and a wooden frame." },
     { key = "input", label = "Input",
       choices = { { "cell", "Cell first" }, { "number", "Number first" } },
-      about = "Cell first: pick a cell, then its number from the pad. Number first: pick a number with L2 / R2, then press A on each cell it goes in." },
+      about = function()
+          return "Cell first: pick a cell, then its number from the pad. Number first: pick a number with "
+              .. input.pair("l1") .. ", then press A on each cell it goes in."
+      end },
     { key = "pad", label = "Number pad",
       choices = { { "panel", "Side panel" }, { "popup", "Pop-up" } },
       about = "Where Cell first input picks the number: the tiles in the side panel, or a pad by the cell. Distraction-free mode always uses the pad." },
+    { key = "shoulders", label = "Shoulder buttons",
+      choices = { { "move", "L1 / R1 move" }, { "undo", "L1 / R1 undo" } },
+      about = "L1 / R1 move: they jump to empty cells or change the number, and L2 / R2 undo and redo. L1 / R1 undo: the other way round, as before version 1.3.3." },
     { key = "mistakes", label = "Check mistakes", about = "Wrong numbers turn red and are counted. With this off, Check board in the pause menu says how many are wrong, for the cost of a hint." },
     { key = "matching", label = "Highlight matching numbers", about = "Cells and notes with the selected number light up." },
     { key = "autoclear", label = "Clear notes automatically", about = "Placing a number removes it from notes in the same row, column and box." },
@@ -139,7 +148,9 @@ function Settings:draw()
         love.graphics.polygon("fill", ax, by - 12, ax + 12, by - 12, ax + 6, by - 5)
     end
 
-    ui.text(ROWS[self.sel].about, x, y0 + (last - self.top + 1) * h + 14, 16, "regular", "left", w)
+    local about = ROWS[self.sel].about
+    if type(about) == "function" then about = about() end
+    ui.text(about, x, y0 + (last - self.top + 1) * h + 14, 16, "regular", "left", w)
 
     ui.hints({ { "B", "Back" }, { "A", "Change" } }, 696, 452, "right")
 end

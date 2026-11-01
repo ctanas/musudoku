@@ -107,6 +107,7 @@ storage.DEFAULT_SETTINGS = {
     generator = "classic", -- "classic" | "dlx" (Dancing Links)
     input = "cell", -- "cell" (pick a cell, then its number) | "number" (the other way round)
     pad = "panel", -- cell first: "panel" (the side panel's number tiles) | "popup" (a 3x3 pad by the cell)
+    shoulders = "move", -- "move" (L1 / R1 move, L2 / R2 undo) | "undo" (swapped, the layout before 1.3.3)
 }
 
 local CHOICES = {
@@ -115,6 +116,7 @@ local CHOICES = {
     generator = { classic = true, dlx = true },
     input = { cell = true, number = true },
     pad = { panel = true, popup = true },
+    shoulders = { move = true, undo = true },
 }
 for _, key in ipairs(theme.ORDER) do CHOICES.theme[key] = true end
 

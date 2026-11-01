@@ -4,6 +4,7 @@ local theme = require("src.theme")
 local sound = require("src.sound")
 local sudoku = require("src.sudoku")
 local hints = require("src.hints")
+local input = require("src.input")
 
 local band = bit.band
 local DIGIT_BIT, ROW, COL, BOX, UNITS = sudoku.DIGIT_BIT, sudoku.ROW, sudoku.COL, sudoku.BOX, sudoku.UNITS
@@ -221,7 +222,7 @@ function Play:move(dr, dc)
     sound.play("move")
 end
 
--- L2 / R2: jump to the previous / next empty cell.
+-- L1 / R1: jump to the previous / next empty cell.
 function Play:jumpEmpty(dir)
     local g = self.game
     local i = g:nextEmpty(g.cursor, dir)
@@ -234,12 +235,12 @@ function Play:jumpEmpty(dir)
 end
 
 -- Number-first input: A puts the chosen number (the game's lastDigit) in the
--- cursor's cell, and L2 / R2 choose the number.
+-- cursor's cell, and L1 / R1 choose the number.
 function Play:numberFirst()
     return self.app.settings.input == "number"
 end
 
--- L2 / R2 in number-first input: the previous / next number that isn't
+-- L1 / R1 in number-first input: the previous / next number that isn't
 -- already on the board nine times.
 function Play:cycleDigit(dir, silent)
     local g = self.game
@@ -366,7 +367,7 @@ function Play:hintAction(a)
     local step = h.steps[h.index]
     if a == "b" then
         self:closeHint()
-    elseif a == "y" or a == "right" or a == "r1" then
+    elseif a == "y" or a == "right" or a == "r2" then
         if h.index < #h.steps then
             h.index = h.index + 1
             self:focusHint()
@@ -374,7 +375,7 @@ function Play:hintAction(a)
         else
             self:react({ blocked = true })
         end
-    elseif a == "l1" or a == "left" then
+    elseif a == "l2" or a == "left" then
         if h.index > 1 then
             h.index = h.index - 1
             self:focusHint()
@@ -449,14 +450,14 @@ function Play:action(a)
         elseif a == "y" or a == "erase" then
             self:react(g:erase(g.cursor), g.cursor)
             self:closePad(true)
-        elseif a == "l1" then
+        elseif a == "l2" then
             self:history("undo")
-        elseif a == "r1" then
+        elseif a == "r2" then
             self:history("redo")
-        elseif a == "l2" or a == "r2" then
+        elseif a == "l1" or a == "r1" then
             -- the pad stays open and follows the cursor, so in pencil mode
             -- you can note one cell after another
-            self:jumpEmpty(a == "l2" and -1 or 1)
+            self:jumpEmpty(a == "l1" and -1 or 1)
         end
         return
     end
@@ -482,10 +483,10 @@ function Play:action(a)
             if res.cell then g.cursor = res.cell end
             self:react(res, res.cell or g.cursor)
         end
-    elseif a == "l1" then self:history("undo")
-    elseif a == "r1" then self:history("redo")
-    elseif a == "l2" or a == "r2" then
-        local dir = (a == "l2") and -1 or 1
+    elseif a == "l2" then self:history("undo")
+    elseif a == "r2" then self:history("redo")
+    elseif a == "l1" or a == "r1" then
+        local dir = (a == "l1") and -1 or 1
         if self:numberFirst() then self:cycleDigit(dir) else self:jumpEmpty(dir) end
     elseif a == "select" then self:react(g:toggleNotes(), g.cursor)
     elseif digit then self:applyDigit(tonumber(digit))
@@ -1050,7 +1051,7 @@ function Play:drawPanel()
         rows = {
             { { "A", pencil and "Toggle" or "Place" }, { "B", "Close" } },
             { { "X", pencil and "Pen" or "Pencil" }, { "Y", "Erase" } },
-            { { "L1", "Undo" }, { "R1", "Redo" } },
+            { { input.label("l2"), "Undo" }, { input.label("r2"), "Redo" } },
         }
     else
         local enter = "Enter"
@@ -1058,14 +1059,14 @@ function Play:drawPanel()
         rows = {
             { { "A", enter }, { "B", "Erase" } },
             { { "X", pencil and "Pen" or "Pencil" }, settings.hints ~= "off" and { "Y", "Hint" } or nil },
-            { { "L1", "Undo" }, { "R1", "Redo" } },
+            { { input.label("l2"), "Undo" }, { input.label("r2"), "Redo" } },
         }
     end
     local legendTop = 462 - (#rows - 1) * 32
     ui.legend(rows, { x, x + 116 }, legendTop, 32, nil, 20, 1.2)
     if numberFirst and not self.pad then
         -- its own row, so its wide glyph doesn't push the columns above apart
-        ui.hints({ { "L2 / R2", "Change number" } }, x, legendTop - 32, "left", nil, 20, 1.2)
+        ui.hints({ { input.pair("l1"), "Change number" } }, x, legendTop - 32, "left", nil, 20, 1.2)
     end
 end
 
@@ -1107,7 +1108,7 @@ function Play:drawHintCard(x, top)
     local rows = { { { "A", self:hintActionLabel(step) } } }
     local nav = {}
     if h.index < #h.steps then nav[#nav + 1] = { "Y", "Next" } end
-    if h.index > 1 then nav[#nav + 1] = { "L1", "Back" } end
+    if h.index > 1 then nav[#nav + 1] = { input.label("l2"), "Back" } end
     if #nav > 0 then rows[#rows + 1] = nav end
     rows[#rows + 1] = { { "B", "Close" } }
     ui.legend(rows, { ix, ix + 104 }, bottom - 18 - (#rows - 1) * 28, 28, nil, 17, 1.1)

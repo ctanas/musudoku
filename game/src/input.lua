@@ -1,7 +1,13 @@
 -- Turns gamepad buttons, the analog stick and keyboard keys into actions:
 -- up down left right a b x y l1 r1 l2 r2 select start menu, plus
--- digit1..digit9 and erase from a PC keyboard. Directions, L2 and R2 repeat
+-- digit1..digit9 and erase from a PC keyboard. Directions, l1 and r1 repeat
 -- while held.
+--
+-- The shoulder actions are named after the default layout: L1 / R1 fire l1 /
+-- r1 (move between empty cells, change the number) and L2 / R2 fire l2 / r2
+-- (undo and redo, pages, hint steps). Settings → Shoulder buttons → "L1 / R1
+-- undo" swaps the two pairs, so on-screen hints ask input.label() which
+-- button fires an action.
 
 local input = {}
 
@@ -32,7 +38,11 @@ local KEYS = {
 
 local TRIGGERS = { triggerleft = "l2", triggerright = "r2" }
 
-local REPEATS = { up = true, down = true, left = true, right = true, l2 = true, r2 = true }
+local REPEATS = { up = true, down = true, left = true, right = true, l1 = true, r1 = true }
+
+local SWAP = { l1 = "l2", r1 = "r2", l2 = "l1", r2 = "r1" }
+local PARTNER = { l1 = "r1", l2 = "r2" }
+local swapped = false
 
 local held = {}          -- [action] = { t = seconds held, next = next repeat time }
 local stick = { x = nil, y = nil }
@@ -44,15 +54,37 @@ local function fire(action)
     input.handler(action)
 end
 
-local function press(action)
+-- `button` is what was pressed, in default-layout names (see above)
+local function press(button)
+    local action = swapped and SWAP[button] or button
     if REPEATS[action] then
         held[action] = { t = 0, next = REPEAT_DELAY }
     end
     fire(action)
 end
 
-local function release(action)
+local function release(button)
+    local action = swapped and SWAP[button] or button
     if REPEATS[action] then held[action] = nil end
+end
+
+-- true: L1 / R1 and L2 / R2 trade actions
+function input.setSwapped(on)
+    on = on and true or false
+    if on ~= swapped then
+        swapped = on
+        held = {}
+    end
+end
+
+-- The button that fires `action` ("l2" -> "L2", or "L1" when swapped).
+function input.label(action)
+    return ((swapped and SWAP[action]) or action):upper()
+end
+
+-- "L1 / R1" for l1, "L2 / R2" for l2, following the swap.
+function input.pair(action)
+    return input.label(action) .. " / " .. input.label(PARTNER[action])
 end
 
 function input.update(dt)

@@ -4,9 +4,10 @@ local sound = require("src.sound")
 local storage = require("src.storage")
 local history = require("src.history")
 local daily = require("src.daily")
+local input = require("src.input")
 
 -- Statistics, in pages: per-difficulty numbers, streaks and recent solves.
--- L1 / R1 or left / right switch pages.
+-- L2 / R2 (see input.lua) or left / right switch pages.
 local Stats = {}
 Stats.__index = Stats
 
@@ -42,8 +43,8 @@ function Stats:action(a)
     if a == "b" or a == "start" then
         sound.play("close")
         app.pop()
-    elseif a == "l1" or a == "left" or a == "r1" or a == "right" then
-        local dir = (a == "l1" or a == "left") and -1 or 1
+    elseif a == "l2" or a == "left" or a == "r2" or a == "right" then
+        local dir = (a == "l2" or a == "left") and -1 or 1
         self.page = (self.page - 1 + dir) % #PAGES + 1
         sound.play("menu")
     elseif PAGES[self.page] == "Recent" and (a == "up" or a == "down") then
@@ -238,7 +239,7 @@ function Stats:draw()
     else self:drawPuzzles() end
 
     local reset = (PAGES[self.page] == "Recent") and "Clear" or "Reset"
-    ui.hints({ { "L1 / R1", "Pages" } }, 24, 452, "left")
+    ui.hints({ { input.pair("l2"), "Pages" } }, 24, 452, "left")
     ui.hints({ { "Y", reset }, { "B", "Back" } }, 696, 452, "right")
 end
 

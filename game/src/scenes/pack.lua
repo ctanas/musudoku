@@ -2,6 +2,7 @@ local ui = require("src.ui")
 local theme = require("src.theme")
 local sound = require("src.sound")
 local packs = require("src.packs")
+local input = require("src.input")
 
 -- One puzzle pack: reads (indexes) the file, then offers next, random or a
 -- chosen puzzle number. With autoNext it starts the next unsolved puzzle
@@ -121,8 +122,8 @@ function Pack:action(a)
     elseif a == "down" then
         self.sel = self.sel % 3 + 1
         sound.play("menu")
-    elseif self.sel == 3 and (a == "left" or a == "right" or a == "l1" or a == "r1") then
-        local step = (a == "left" and -1) or (a == "right" and 1) or (a == "l1" and -100) or 100
+    elseif self.sel == 3 and (a == "left" or a == "right" or a == "l2" or a == "r2") then
+        local step = (a == "left" and -1) or (a == "right" and 1) or (a == "l2" and -100) or 100
         self.choice = (self.choice - 1 + step) % count + 1
         sound.play("move")
     elseif a == "a" then
@@ -223,7 +224,8 @@ function Pack:draw()
         ui.text(self.message, x, 352, 16, "regular", "left", w)
     elseif self.sel == 3 then
         theme.set("muted")
-        ui.text("Left and right change the number by 1, L1 and R1 by 100.", x, 352, 16, "regular", "left", w)
+        ui.text("Left and right change the number by 1, " .. input.label("l2") .. " and "
+            .. input.label("r2") .. " by 100.", x, 352, 16, "regular", "left", w)
     end
 
     ui.hints({ { "B", "Back" }, { "A", "Play" } }, 696, 452, "right")

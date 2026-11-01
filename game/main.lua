@@ -181,6 +181,7 @@ function app.applySettings()
     theme.use(app.settings.theme)
     sound.enabled = app.settings.sound
     if sound.enabled then sound.load() end -- loads the audio modules on first use
+    input.setSwapped(app.settings.shoulders == "undo")
 end
 
 function app.hasGame()

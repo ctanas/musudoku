@@ -13,8 +13,10 @@ Puzzle packs (text files of puzzles) go in `ports/musudoku/packs/`. A starter pa
 | B | Erase, close |
 | X | Switch pen and pencil |
 | Y | Hint (turn on in Settings) |
-| L1 | Undo |
-| R1 | Redo |
-| L2 / R2 | Previous / next empty cell, or change the number with Number-first input |
+| L1 / R1 | Previous / next empty cell, or change the number with Number-first input |
+| L2 | Undo |
+| R2 | Redo |
 | Select | Fill or clear all notes |
 | Start | Pause menu |
+
+L1 / R1 and L2 / R2 can be swapped in Settings → Shoulder buttons.

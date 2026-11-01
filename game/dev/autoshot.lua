@@ -99,13 +99,13 @@ function M.start(app)
         function() shot("12_stats") end,
         function()
             app.stats.medium.streak, app.stats.medium.bestStreak = 4, 6
-            press("r1")
+            press("r2")
             return 0.3
         end,
         function() shot("12b_stats_streaks") end,
-        function() press("r1") return 0.3 end,
+        function() press("r2") return 0.3 end,
         function() shot("12c_stats_recent") end,
-        function() press("r1") return 0.2 end,
+        function() press("r2") return 0.2 end,
         function() press("b") return 0.3 end,
         function()
             app.settings.theme = "paper"
@@ -138,10 +138,10 @@ function M.start(app)
         end,
         function() shot("15_no_timer") end,
         -- Check board (only offered while mistake checking is off): two right
-        -- numbers and one wrong, placed after jumping with R2 and L2
+        -- numbers and one wrong, placed after jumping with R1 and L1
         function()
             local g = app.game
-            press("r2", "r2", "l2")
+            press("r1", "r1", "l1")
             for _ = 1, 2 do
                 g.cursor = g:nextEmpty(g.cursor, 1)
                 press("digit" .. g.solution[g.cursor])
@@ -158,12 +158,12 @@ function M.start(app)
         function() shot("15d_check_result") end,
         function() press("a") return 0.4 end,
         function() shot("15e_after_check") end,
-        -- number-first input: R2 picks the next number, A places it
+        -- number-first input: R1 picks the next number, A places it
         function()
             app.settings.input = "number"
             local g = app.game
             g.cursor = g:nextEmpty(60, 1)
-            press("r2")
+            press("r1")
             return 0.4
         end,
         function() shot("15f_number_first") end,

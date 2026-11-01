@@ -21,11 +21,11 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   Large notes setting for easier reading
 - Two ways to enter numbers (Settings → Input): **Cell first** picks a cell, then its
   number from the side panel's number tiles or a pop-up pad (Settings → Number pad).
-  **Number first** picks a number with L2 / R2, then A puts it in
+  **Number first** picks a number with L1 / R1, then A puts it in
   each cell you choose (see "Number-first input" below)
 - Undo and redo, optional mistake checking. With it off, **Check board** in the pause
   menu says how many of your numbers are wrong, but not which, for the cost of a hint
-- L2 / R2 jump to the previous / next empty cell
+- L1 / R1 jump to the previous / next empty cell
 - Optional explained hints (off by default): Y finds the easiest logical move and
   explains it on the board, walking through any groundwork it needs first (see
   "Explained hints" below)
@@ -123,10 +123,15 @@ to use.
 | B | Erase the cell | Close |
 | X | Switch pen / pencil | Switch pen / pencil |
 | Y | Hint, if turned on in Settings | Erase the cell |
-| L1 / R1 | Undo / redo | Undo / redo |
-| L2 / R2 | Previous / next empty cell, hold to repeat (Number first: change the number) | Same, and the pad stays open |
+| L1 / R1 | Previous / next empty cell, hold to repeat (Number first: change the number) | Same, and the pad stays open |
+| L2 / R2 | Undo / redo | Undo / redo |
 | Select | Fill all notes, or clear them if there are any | |
 | Start / Menu | Pause menu | Pause menu |
+
+These are the default shoulder buttons. **Settings → Shoulder buttons → L1 / R1 undo**
+swaps the two pairs everywhere, as before version 1.3.3: L1 / R1 undo and redo, turn
+pages and step through hints, and L2 / R2 jump between empty cells and change the
+number. The on-screen button hints follow the setting.
 
 ### Explained hints
 
@@ -152,7 +157,7 @@ person could make right now, with the board highlighting the cells involved:
   offers the number. Every puzzle up to Expert can be solved with explained hints
   alone.
 
-In the hint: A does the step's action, Y goes to the next step, L1 goes back, B
+In the hint: A does the step's action, Y goes to the next step, L2 goes back, B
 closes. Opening a hint counts as one hint. Hints work from the numbers on the board, not your notes, so
 they're right even when your notes are incomplete.
 
@@ -172,10 +177,10 @@ Q/E are L1/R1, Page Up/Page Down are L2/R2, Tab is Select, Esc is Start, and 1�
 
 ### Number-first input
 
-With **Settings → Input → Number first**, there's no pad. L2 / R2 choose a number,
+With **Settings → Input → Number first**, there's no pad. L1 / R1 choose a number,
 which is highlighted in the side panel and on the board, and A puts it in the cell
 under the cursor, or toggles it as a note in pencil mode. A on a cell that already
-has that number clears it. A on a given picks up the given's number instead. L2 / R2
+has that number clears it. A on a given picks up the given's number instead. L1 / R1
 skip numbers that are already on the board nine times, and once the chosen number
 is placed nine times, the next number still needed is chosen. An empty cell shows a
 faint preview of what A would put there.
