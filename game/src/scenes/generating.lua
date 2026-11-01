@@ -1,18 +1,27 @@
 local ui = require("src.ui")
 local theme = require("src.theme")
 local sudoku = require("src.sudoku")
+local daily = require("src.daily")
 
 local Generating = {}
 Generating.__index = Generating
 
 local NAMES = { easy = "an easy", medium = "a medium", hard = "a hard", expert = "an expert" }
+local LEVEL_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert" }
 local FRAME_BUDGET = 0.010 -- seconds of generator work per frame
 local MIN_SHOWN = 0.45     -- keep the screen up briefly so it doesn't flicker
 
-function Generating.new(app, difficulty)
-    local self = setmetatable({ app = app, difficulty = difficulty, t = 0 }, Generating)
-    local rng = love.math.newRandomGenerator(os.time(), math.floor(love.timer.getTime() * 1e6) % 2147483647)
-    local function random(n) return rng:random(n) end
+-- opts.daily: today's puzzle (from daily.today()), built from the date with the
+-- Classic generator so it's the same everywhere.
+function Generating.new(app, difficulty, opts)
+    local self = setmetatable({ app = app, difficulty = difficulty, t = 0, opts = opts or {} }, Generating)
+    local random, method
+    if self.opts.daily then
+        random, method = daily.rng(self.opts.daily.seed), "classic"
+    else
+        local rng = love.math.newRandomGenerator(os.time(), math.floor(love.timer.getTime() * 1e6) % 2147483647)
+        random, method = function(n) return rng:random(n) end, app.settings.generator
+    end
 
     local frameStart = 0
     self.co = coroutine.create(function()
@@ -20,7 +29,7 @@ function Generating.new(app, difficulty)
             if love.timer.getTime() - frameStart > FRAME_BUDGET then
                 coroutine.yield()
             end
-        end, app.settings.generator)
+        end, method)
     end)
     self.beginFrame = function() frameStart = love.timer.getTime() end
     return self
@@ -39,7 +48,11 @@ function Generating:update(dt)
         end
     end
     if self.result and self.t >= MIN_SHOWN then
-        self.app.startGame(self.result, self.difficulty)
+        if self.opts.daily then
+            self.app.startDaily(self.result, self.difficulty, self.opts.daily.key)
+        else
+            self.app.startGame(self.result, self.difficulty)
+        end
     end
 end
 
@@ -69,10 +82,18 @@ function Generating:draw()
     end
 
     theme.set("text")
-    ui.text("Building " .. NAMES[self.difficulty] .. " puzzle", 0, 262, 26, "bold", "center", ui.W)
-    theme.set("muted")
-    local method = self.app.settings.generator == "dlx" and "Dancing Links" or "Classic"
-    ui.text(method .. " generator. Every puzzle has exactly one solution.", 0, 302, 16, "regular", "center", ui.W)
+    local d = self.opts.daily
+    if d then
+        ui.text("Building today's puzzle", 0, 262, 26, "bold", "center", ui.W)
+        theme.set("muted")
+        ui.text(d.label .. ", " .. LEVEL_NAMES[self.difficulty] .. ". Everyone gets the same puzzle today.",
+            0, 302, 16, "regular", "center", ui.W)
+    else
+        ui.text("Building " .. NAMES[self.difficulty] .. " puzzle", 0, 262, 26, "bold", "center", ui.W)
+        theme.set("muted")
+        local method = self.app.settings.generator == "dlx" and "Dancing Links" or "Classic"
+        ui.text(method .. " generator. Every puzzle has exactly one solution.", 0, 302, 16, "regular", "center", ui.W)
+    end
 
     ui.hints({ { "B", "Cancel" } }, 696, 452, "right")
 end

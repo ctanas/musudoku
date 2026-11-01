@@ -396,6 +396,7 @@ function Game:serialize()
         undoStack = self.undoStack,
         redoStack = self.redoStack,
         pack = self.pack,
+        daily = self.daily,
     }
 end
 
@@ -433,6 +434,7 @@ function Game.deserialize(t)
             count = tonumber(t.pack.count) or 0, size = tonumber(t.pack.size) or 0,
         }
     end
+    if type(t.daily) == "string" and require("src.daily").isKey(t.daily) then g.daily = t.daily end
     if not sudoku.isValidSolution(g.solution) then return nil end
     return g
 end

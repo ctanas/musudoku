@@ -168,6 +168,29 @@ function M.start(app)
             return 2.2
         end,
         function() shot("16_title_continue") end,
+        -- the daily puzzle: replacing the puzzle in progress, building, solving
+        function() app.openDaily() return 0.4 end,
+        function() shot("16b_daily_confirm") end,
+        function() press("a") return 0.15 end,
+        function() shot("16c_daily_building") return 1.5 end,
+        function() shot("16d_daily_play") end,
+        function()
+            local g = app.game
+            local last = firstEmpty(1)
+            for i = 1, 81 do
+                if i ~= last and not g.fixed[i] then g.values[i] = g.solution[i] g.notes[i] = 0 end
+            end
+            g.cursor = last
+            g.mode = "pen"
+            press("digit" .. g.solution[last])
+            return 2.2
+        end,
+        function() shot("16e_daily_win") end,
+        function() press("a") return 2.2 end,
+        function() shot("16f_title_daily_solved") end,
+        function() app.openDaily() return 0.4 end,
+        function() shot("16g_daily_already_solved") end,
+        function() press("a") return 0.3 end,
         -- puzzle packs
         function() app.push("packs") return 0.4 end,
         function() shot("17_packs") end,

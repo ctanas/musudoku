@@ -866,8 +866,10 @@ function Play:drawHeader(x, base)
     local time = self.app.settings.timer and clock(g.elapsed)
     -- measured with its widest digits, so the label doesn't change as it ticks
     local clockW = time and HEAD_GAP + ui.width((time:gsub("%d", "0")), HEAD_CLOCK, "bold") or 0
+    local names = DIFFICULTY_LABELS[g.difficulty] or { "" }
+    if g.daily then names = { "DAILY " .. names[1], "DAILY" } end
     local label, rowW
-    for _, name in ipairs(DIFFICULTY_LABELS[g.difficulty] or { "" }) do
+    for _, name in ipairs(names) do
         label = prefix .. name
         rowW = ui.width(label, HEAD_LABEL, "bold") + clockW
         if rowW <= PW then break end

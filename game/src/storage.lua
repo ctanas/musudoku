@@ -7,6 +7,7 @@ local storage = {}
 
 local SETTINGS_FILE, STATS_FILE, GAME_FILE = "settings.lua", "stats.lua", "game.lua"
 local PACKS_FILE = "packs.lua"
+local DAILY_FILE = "daily.lua"
 
 local function serialize(value, out)
     local t = type(value)
@@ -164,6 +165,24 @@ end
 
 function storage.savePackProgress(data)
     return write(PACKS_FILE, data)
+end
+
+-- Daily puzzles ---------------------------------------------------------------
+-- days["YYYY-MM-DD"] = seconds taken, for every day whose puzzle was solved.
+
+function storage.loadDaily()
+    local saved = read(DAILY_FILE)
+    local days = {}
+    if saved and type(saved.days) == "table" then
+        for k, v in pairs(saved.days) do
+            if type(k) == "string" and tonumber(v) then days[k] = tonumber(v) end
+        end
+    end
+    return { days = days }
+end
+
+function storage.saveDaily(data)
+    return write(DAILY_FILE, data)
 end
 
 -- Game in progress ----------------------------------------------------------

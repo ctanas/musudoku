@@ -38,6 +38,8 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   Solarized Light. Dark: Cyanotype (default), Solarized Dark, Nord, Gruvbox, and
   Chalkboard (green slate with chalk dust and a wooden frame around the board)
 - Sound effects generated in code, so no audio files are needed
+- Daily puzzle: one puzzle a day, the same for everyone, with a streak for days solved
+  in a row (see "Daily puzzle" below)
 - Puzzle packs: play collections of puzzles published by others, with progress
   tracked per pack
 - Battery friendly: the screen is only redrawn when something changes, and with
@@ -57,6 +59,19 @@ Saves are stored in `MUOS/application/muSudoku/.game/save/` and puzzle packs in
 `MUOS/application/muSudoku/packs/`. Installing an update over the app should keep both,
 since the package doesn't contain those files, but back them up before reinstalling.
 If the game doesn't start, check `MUOS/application/muSudoku/.game/musudoku.log`.
+
+## Daily puzzle
+
+**Daily puzzle** on the title screen gives one puzzle per day. It's built from the
+date, so everyone playing the same version gets the same puzzle that day, with no
+internet needed. It's Easy on Monday, Medium on Tuesday and Wednesday, Hard on Thursday
+and Friday, and Expert at the weekend.
+
+The title screen shows whether today's puzzle is solved and your streak of days solved
+in a row. A day counts whenever its puzzle is solved, so finishing yesterday's puzzle
+after midnight still keeps the streak. Daily puzzles don't count toward the
+per-difficulty statistics. The puzzle depends on the device's date, so if the clock
+was never set, the game asks you to set it in the muOS settings first.
 
 ## Puzzle packs
 
@@ -186,6 +201,9 @@ way:
   met exactly once (every cell filled, every digit once per row, column and box). It
   takes a little longer than Classic.
 
+The daily puzzle always uses Classic, with a random number generator seeded from the
+date that gives the same numbers on every device (`src/daily.lua`).
+
 Pack puzzles weren't made by this generator, so the game checks each one for a single
 solution when you start it (see "Puzzle packs"). `./build.sh test` generates puzzles at
 every difficulty with both generators and checks that each has exactly one solution,
@@ -268,6 +286,7 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
   src/game.lua       Puzzle state, notes, undo/redo, hints, serialization
   src/storage.lua    Settings, statistics and save files
   src/packs.lua      Puzzle pack folder, file formats, indexing, progress
+  src/daily.lua      Daily puzzle dates, seeds and streaks
   src/hints.lua      Explained hints: finds moves and writes explanations
   src/ui.lua         720x480 layout scaling, text and button glyphs
   src/input.lua      Gamepad and keyboard mapping, hold-to-repeat
@@ -294,12 +313,6 @@ make the package much smaller.
 
 ## TODO
 
-2. **Daily puzzle.** The same puzzle for everyone each day, with its own streak. Both
-   generators already take a random-number source, so seeding it from the date gives
-   a repeatable puzzle with no network. It must always use one generator, since
-   Classic and Dancing Links give different puzzles from the same seed. It also
-   relies on the device clock, which can be wrong on a handheld that hasn't been
-   online.
 3. **Large notes.** A Settings option for bigger note digits. Notes are about 16 px
    apart in a 50 px cell, and nine of them have to fit.
 4. **More techniques and a Master difficulty.** Add X-Wing, Swordfish and XY-Wing to

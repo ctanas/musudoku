@@ -9,6 +9,7 @@ local storage = require("src.storage")
 local Game = require("src.game")
 local packs = require("src.packs")
 local sudoku = require("src.sudoku")
+local daily = require("src.daily")
 
 local VERSION = "1.2.3"
 
@@ -113,6 +114,10 @@ function app.saveStats()
     storage.saveStats(app.stats)
 end
 
+function app.saveDaily()
+    storage.saveDaily(app.daily)
+end
+
 function app.savePackProgress()
     storage.savePackProgress(packs.saveableProgress(app.packProgress))
 end
@@ -170,6 +175,55 @@ function app.newPuzzle(difficulty)
     app.setScene("generating", difficulty)
 end
 
+-- Open today's puzzle: continue it if it's the one in progress, otherwise
+-- build it (asking first if another puzzle would be replaced).
+function app.openDaily()
+    local today = daily.today()
+    if not today then
+        app.push("confirm", {
+            info = true,
+            title = "Set the date first",
+            body = "The daily puzzle goes by today's date, and this device's clock isn't set. "
+                .. "Set the date and time in the muOS settings.",
+        })
+        return
+    end
+    local g = app.game
+    if g and g.daily == today.key and not g.solved then
+        app.setScene("play")
+        return
+    end
+    if app.daily.days[today.key] then
+        app.push("confirm", {
+            info = true,
+            title = "Today's puzzle is solved",
+            body = "Solved in " .. ui.formatTime(app.daily.days[today.key])
+                .. ". Come back tomorrow for the next one.",
+        })
+        return
+    end
+    local function start()
+        app.setScene("generating", today.difficulty, { daily = today })
+    end
+    if app.hasGame() then
+        app.push("confirm", {
+            title = "Start today's puzzle?",
+            body = "The puzzle in progress will be replaced.",
+            yes = "Start",
+            onYes = start,
+        })
+    else
+        start()
+    end
+end
+
+function app.startDaily(generated, difficulty, key)
+    app.game = Game.new(generated, difficulty)
+    app.game.daily = key
+    app.saveGame()
+    app.setScene("play")
+end
+
 function app.startGame(generated, difficulty)
     app.game = Game.new(generated, difficulty)
     local entry = app.stats[difficulty]
@@ -188,6 +242,16 @@ function app.recordSolve()
         local p = packs.entry(app.packProgress, g.pack.file)
         p.solved[g.pack.index] = true
         app.savePackProgress()
+        storage.clearGame()
+        return false
+    end
+    if g.daily then
+        -- Daily puzzles have their own record (the days solved and streaks)
+        -- and stay out of the per-difficulty statistics.
+        local t = math.floor(g.elapsed)
+        local before = app.daily.days[g.daily]
+        if not before or t < before then app.daily.days[g.daily] = t end
+        app.saveDaily()
         storage.clearGame()
         return false
     end
@@ -298,6 +362,7 @@ function love.load(args)
     app.settings = storage.loadSettings()
     app.stats = storage.loadStats()
     app.packProgress = packs.loadProgress(storage.loadPackProgress())
+    app.daily = storage.loadDaily()
     app.applySettings()
 
     local saved = storage.loadGame()

@@ -1,6 +1,7 @@
 local ui = require("src.ui")
 local theme = require("src.theme")
 local sound = require("src.sound")
+local daily = require("src.daily")
 
 local Win = { overlay = true }
 Win.__index = Win
@@ -22,7 +23,11 @@ end
 function Win:action(a)
     if self.t < 0.3 then return end
     local app = self.app
-    if a == "a" then
+    if a == "a" and app.game.daily then
+        sound.play("close")
+        app.game = nil
+        app.setScene("title")
+    elseif a == "a" then
         sound.play("open")
         local g = app.game
         if g.pack then
@@ -51,6 +56,7 @@ function Win:draw()
     theme.set("muted", p)
     local heading = DIFFICULTY_NAMES[g.difficulty] .. " puzzle"
     if g.pack then heading = g.pack.name .. ", puzzle " .. ui.number(g.pack.index) end
+    if g.daily then heading = "Daily puzzle, " .. daily.label(g.daily) end
     ui.text(heading, x + 32, y + 26, 18, "regular", "left", w - 64)
     theme.set("text", p)
     ui.text("Solved", x + 32, y + 48, 38, "bold")
@@ -59,9 +65,19 @@ function Win:draw()
     ui.centered(ui.formatTime(g.elapsed), x + w - 32, y + 72, 38, "bold", "right")
 
     local stats = self.app.stats[g.difficulty]
-    if g.pack then stats = nil end
+    if g.pack or g.daily then stats = nil end
     local lines = {}
-    if g.pack then
+    if g.daily then
+        local today = daily.today()
+        local days = self.app.daily.days
+        local streak = daily.streak(days, today and today.key or g.daily)
+        if streak > 1 then
+            local best = streak >= daily.bestStreak(days)
+            lines[#lines + 1] = { streak .. "-day streak" .. (best and ", your best" or ""), best }
+        else
+            lines[#lines + 1] = { "Come back tomorrow for the next one.", false }
+        end
+    elseif g.pack then
         local packs = require("src.packs")
         local entry = self.app.packProgress[g.pack.file]
         local solved = entry and packs.solvedCount(entry) or 0
@@ -82,7 +98,7 @@ function Win:draw()
         local text = table.concat(parts, ", ")
         lines[#lines + 1] = { text:sub(1, 1):upper() .. text:sub(2), false }
     end
-    if g.hints > 0 and not g.pack then
+    if g.hints > 0 and not g.pack and not g.daily then
         lines[#lines + 1] = { "Solves with hints don't count toward best times.", false, 14 }
     end
 
@@ -93,7 +109,9 @@ function Win:draw()
         ly = ly + (line[3] and 22 or 28)
     end
 
-    ui.hints({ { "B", "Title" }, { "A", g.pack and "Next puzzle" or "New puzzle" } }, x + w - 24, y + h - 26, "right", p)
+    local buttons = { { "B", "Title" }, { "A", g.pack and "Next puzzle" or "New puzzle" } }
+    if g.daily then buttons = { { "A", "Title" } } end
+    ui.hints(buttons, x + w - 24, y + h - 26, "right", p)
 end
 
 return Win

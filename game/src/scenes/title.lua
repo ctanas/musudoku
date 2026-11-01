@@ -1,6 +1,7 @@
 local ui = require("src.ui")
 local theme = require("src.theme")
 local sound = require("src.sound")
+local daily = require("src.daily")
 
 local Title = {}
 Title.__index = Title
@@ -27,6 +28,7 @@ function Title:build()
     if app.hasGame() then
         local g = app.game
         local where = g.pack and (g.pack.name .. " " .. ui.number(g.pack.index)) or DIFFICULTY_NAMES[g.difficulty]
+        if g.daily then where = "Daily puzzle" end
         self.items[#self.items + 1] = {
             label = "Continue",
             detail = where .. ", " .. ui.formatTime(g.elapsed),
@@ -34,12 +36,24 @@ function Title:build()
         }
     end
     self.items[#self.items + 1] = { label = "New puzzle", run = function() app.push("difficulty") end }
+    self.items[#self.items + 1] = { label = "Daily puzzle", detail = self:dailyDetail(), run = app.openDaily }
     self.items[#self.items + 1] = { label = "Puzzle packs", run = function() app.push("packs") end }
     self.items[#self.items + 1] = { label = "Statistics", run = function() app.push("stats") end }
     self.items[#self.items + 1] = { label = "Settings", run = function() app.push("settings") end }
     self.items[#self.items + 1] = { label = "About", run = function() app.push("about") end }
     self.items[#self.items + 1] = { label = "Quit", run = function() app.quit() end }
     self.sel = math.min(self.sel, #self.items)
+end
+
+function Title:dailyDetail()
+    local app = self.app
+    local today = daily.today()
+    if not today then return "Set the date first" end
+    local streak = daily.streak(app.daily.days, today.key)
+    local suffix = streak > 1 and (", " .. streak .. "-day streak") or ""
+    if app.daily.days[today.key] then return "Solved" .. suffix end
+    if app.game and app.game.daily == today.key and not app.game.solved then return "In progress" .. suffix end
+    return DIFFICULTY_NAMES[today.difficulty] .. suffix
 end
 
 function Title:resume()
@@ -139,10 +153,11 @@ function Title:draw()
     theme.set("text")
     ui.text("muSudoku", x - 3, 84, 64, "bold")
 
-    local y = 190
+    local y, step = 182, 36
+    if #self.items <= 7 then y, step = 190, 40 end
     for k, item in ipairs(self.items) do
         local selected = (k == self.sel)
-        local cy = y + (k - 1) * 42
+        local cy = y + (k - 1) * step
         if selected then
             theme.set("accent")
             ui.rect("fill", x - 18, cy - 6, 8, 12, 2)
