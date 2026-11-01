@@ -100,5 +100,20 @@ os.remove(big)
 check("big file indexed", bi.count == 100000)
 print(string.format("indexed 100,000 puzzles in %.0f ms", ms))
 
+-- Times per pack
+local tp = packs.entry({}, "t.txt")
+check("new pack has no times", tp.best == 0 and tp.timed == 0 and tp.perfect == 0)
+check("first solve is a best", packs.recordSolve(tp, 1, 300, 0, 0) == true)
+check("slower isn't", packs.recordSolve(tp, 2, 400, 0, 1) == false)
+check("hinted solves never set a best", packs.recordSolve(tp, 3, 100, 1, 0) == false and tp.best == 300)
+check("faster is", packs.recordSolve(tp, 4, 200, 0, 0) == true and tp.best == 200)
+check("counts", tp.timed == 4 and tp.total == 1000 and tp.perfect == 2 and tp.solved[3])
+local round = packs.loadProgress(packs.saveableProgress({ ["t.txt"] = tp }))["t.txt"]
+check("times survive saving", round.best == 200 and round.total == 1000 and round.timed == 4 and round.perfect == 2)
+local old = packs.loadProgress({ ["o.txt"] = { count = 1, size = 1, solved = { 1 } } })["o.txt"]
+check("older saves get zero times", old.best == 0 and old.timed == 0)
+packs.reset(tp)
+check("reset clears times and progress", tp.best == 0 and tp.timed == 0 and next(tp.solved) == nil)
+
 print(string.format("\n%d passed, %d failed", passed, failed))
 os.exit(failed == 0 and 0 or 1)

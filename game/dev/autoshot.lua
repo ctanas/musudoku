@@ -96,6 +96,9 @@ function M.start(app)
         function() press("b") return 0.4 end,
         function() app.push("stats") return 0.4 end,
         function() shot("12_stats") end,
+        function() press("r1") return 0.3 end,
+        function() shot("12b_stats_recent") end,
+        function() press("l1") return 0.2 end,
         function() press("b") return 0.3 end,
         function()
             app.settings.theme = "paper"
@@ -230,6 +233,13 @@ function M.start(app)
         function() shot("21_pack_win") end,
         function() press("a") return 1.2 end,
         function() shot("22_pack_next") end,
+        function()
+            app.setScene("title")
+            app.push("packs")
+            press("a")
+            return 0.8
+        end,
+        function() shot("22b_pack_times") end,
         function()
             app.setScene("title")
             app.push("packs")

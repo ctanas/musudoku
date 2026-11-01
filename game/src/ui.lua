@@ -191,6 +191,17 @@ function ui.ease(t)
 end
 
 -- 49151 -> "49,151"
+-- `str`, shortened with "..." if needed to fit `width` at this size.
+function ui.fit(str, width, size, weight)
+    if ui.width(str, size, weight) <= width then return str end
+    local utf8 = require("utf8")
+    local s = str
+    while #s > 0 and ui.width(s .. "...", size, weight) > width do
+        s = s:sub(1, (utf8.offset(s, -1) or #s) - 1)
+    end
+    return s .. "..."
+end
+
 function ui.number(n)
     local s = tostring(math.floor(n))
     local out = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()

@@ -82,6 +82,7 @@ function Win:draw()
         local entry = self.app.packProgress[g.pack.file]
         local solved = entry and packs.solvedCount(entry) or 0
         lines[#lines + 1] = { ui.number(solved) .. " of " .. ui.number(g.pack.count) .. " solved in this pack", false }
+        if self.info.newBest then lines[#lines + 1] = { "Best time in this pack", true } end
     elseif self.info.newBest then
         lines[#lines + 1] = { "New best time", true }
     elseif stats and stats.best > 0 then

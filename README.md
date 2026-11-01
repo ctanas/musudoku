@@ -35,15 +35,15 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   board-wide wave and confetti
 - Auto-save, with Continue on the title screen
 - Statistics per difficulty: started, solved, perfect (no hints, no mistakes), best
-  and average time
+  and average time, plus a Recent page listing the last 50 solves of every kind
 - Nine themes. Light: Paper, Sakura, Frankfurt (Lufthansa blue and yellow) and
   Solarized Light. Dark: Cyanotype (default), Solarized Dark, Nord, Gruvbox, and
   Chalkboard (green slate with chalk dust and a wooden frame around the board)
 - Sound effects generated in code, so no audio files are needed
 - Daily puzzle: one puzzle a day, the same for everyone, with a streak for days solved
   in a row (see "Daily puzzle" below)
-- Puzzle packs: play collections of puzzles published by others, with progress
-  tracked per pack
+- Puzzle packs: play collections of puzzles published by others, with progress, best
+  and average time tracked per pack
 - Battery friendly: the screen is only redrawn when something changes, and with
   sound effects off the audio system isn't started at all (see "Idle rendering"
   below)
@@ -97,8 +97,10 @@ collections into several files.
 
 **Checking and grading.** When you start a puzzle the game checks it has exactly one
 solution, skipping it with a message if not, and grades it Easy to Master with the
-same rules as generated puzzles. Pack puzzles don't count toward Statistics. Progress
-is saved per file name, and changing a file's contents resets its progress.
+same rules as generated puzzles. Pack puzzles don't count toward the per-difficulty
+statistics. Instead each pack keeps its own best time (solves without hints), average
+and perfect solves, shown on its screen. Progress is saved per file name, and
+changing a file's contents resets its progress.
 
 **Where to find puzzles.** The Sudoku Exchange puzzle bank
 (github.com/grantm/sudoku-exchange-puzzle-bank) says its puzzles are free to use for
@@ -295,6 +297,7 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
   src/storage.lua    Settings, statistics and save files
   src/packs.lua      Puzzle pack folder, file formats, indexing, progress
   src/daily.lua      Daily puzzle dates, seeds and streaks
+  src/history.lua    Recent solves for the Statistics page
   src/hints.lua      Explained hints: finds moves and writes explanations
   src/ui.lua         720x480 layout scaling, text and button glyphs
   src/input.lua      Gamepad and keyboard mapping, hold-to-repeat
@@ -321,8 +324,6 @@ make the package much smaller.
 
 ## TODO
 
-5. **Pack stats and history.** Best times per pack, and a list of recent solves. Packs
-   only track which puzzles are solved now.
 6. **Streaks.** Current and best streak per difficulty in Statistics. A streak breaks
    when a new puzzle is started while the current one is unsolved.
 

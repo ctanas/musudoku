@@ -10,6 +10,7 @@ local Game = require("src.game")
 local packs = require("src.packs")
 local sudoku = require("src.sudoku")
 local daily = require("src.daily")
+local history = require("src.history")
 
 local VERSION = "1.2.3"
 
@@ -112,6 +113,10 @@ end
 
 function app.saveStats()
     storage.saveStats(app.stats)
+end
+
+function app.saveHistory()
+    storage.saveHistory(app.history)
 end
 
 function app.saveDaily()
@@ -233,22 +238,30 @@ function app.startGame(generated, difficulty)
     app.setScene("play")
 end
 
--- Records a solve and returns true if it set a new best time.
+-- Records a solve and returns true if it set a new best time (for a pack,
+-- the pack's best).
 function app.recordSolve()
     local g = app.game
+    -- at least a second: 0 means "no best time yet" in the records
+    local t = math.max(1, math.floor(g.elapsed))
+    history.add(app.history, {
+        at = os.time(), kind = g.pack and "pack" or (g.daily and "daily" or "puzzle"),
+        difficulty = g.difficulty, pack = g.pack and g.pack.name, index = g.pack and g.pack.index,
+        time = t, hints = g.hints, mistakes = g.mistakes,
+    })
+    app.saveHistory()
     if g.pack then
-        -- Pack puzzles track progress per pack and stay out of the
+        -- Pack puzzles track progress and times per pack and stay out of the
         -- per-difficulty statistics, which are for generated puzzles.
         local p = packs.entry(app.packProgress, g.pack.file)
-        p.solved[g.pack.index] = true
+        local best = packs.recordSolve(p, g.pack.index, t, g.hints, g.mistakes)
         app.savePackProgress()
         storage.clearGame()
-        return false
+        return best
     end
     if g.daily then
         -- Daily puzzles have their own record (the days solved and streaks)
         -- and stay out of the per-difficulty statistics.
-        local t = math.floor(g.elapsed)
         local before = app.daily.days[g.daily]
         if not before or t < before then app.daily.days[g.daily] = t end
         app.saveDaily()
@@ -258,7 +271,6 @@ function app.recordSolve()
     local entry = app.stats[g.difficulty]
     local best = false
     if entry then
-        local t = math.floor(g.elapsed)
         entry.solved = entry.solved + 1
         entry.total = entry.total + t
         if g.hints == 0 and g.mistakes == 0 then entry.perfect = entry.perfect + 1 end
@@ -363,6 +375,7 @@ function love.load(args)
     app.stats = storage.loadStats()
     app.packProgress = packs.loadProgress(storage.loadPackProgress())
     app.daily = storage.loadDaily()
+    app.history = storage.loadHistory()
     app.applySettings()
 
     local saved = storage.loadGame()

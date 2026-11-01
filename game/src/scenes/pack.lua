@@ -39,7 +39,7 @@ function Pack:ready()
     app.packCache[self.file.path] = self.index
     if p.count ~= self.index.count or p.size ~= self.file.size then
         if p.size ~= self.file.size then
-            p.solved, p.invalid, p.last = {}, {}, 0 -- the file changed: start over
+            packs.reset(p) -- the file changed: start over
         end
         p.count, p.size = self.index.count, self.file.size
         app.savePackProgress()
@@ -166,6 +166,13 @@ function Pack:draw()
     local solved = packs.solvedCount(p)
     theme.set("muted")
     ui.text(ui.number(count) .. (count == 1 and " puzzle, " or " puzzles, ") .. ui.number(solved) .. " solved", x, 98, 18, "regular")
+    if p.timed > 0 then
+        local parts = {}
+        if p.best > 0 then parts[#parts + 1] = "Best " .. ui.formatTime(p.best) end
+        parts[#parts + 1] = "Average " .. ui.formatTime(p.total / p.timed)
+        if p.perfect > 0 then parts[#parts + 1] = ui.number(p.perfect) .. " perfect" end
+        ui.text(table.concat(parts, ", "), x, 98, 18, "regular", "right", w)
+    end
     theme.set("panel")
     ui.rect("fill", x, 128, w, 6, 3)
     if solved > 0 then

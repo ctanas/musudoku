@@ -8,6 +8,7 @@ local storage = {}
 local SETTINGS_FILE, STATS_FILE, GAME_FILE = "settings.lua", "stats.lua", "game.lua"
 local PACKS_FILE = "packs.lua"
 local DAILY_FILE = "daily.lua"
+local HISTORY_FILE = "history.lua"
 
 local function serialize(value, out)
     local t = type(value)
@@ -184,6 +185,16 @@ end
 
 function storage.saveDaily(data)
     return write(DAILY_FILE, data)
+end
+
+-- Recent solves ---------------------------------------------------------------
+
+function storage.loadHistory()
+    return require("src.history").clean(read(HISTORY_FILE))
+end
+
+function storage.saveHistory(list)
+    return write(HISTORY_FILE, list)
 end
 
 -- Game in progress ----------------------------------------------------------

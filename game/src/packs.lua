@@ -161,8 +161,12 @@ function packs.list(dir)
 end
 
 -- Progress -----------------------------------------------------------------------
--- progress[file] = { count, size, last, solved = {n, ...}, invalid = {n, ...} }
--- Lists are stored as arrays and turned into sets in memory.
+-- progress[file] = { count, size, last, solved = {n, ...}, invalid = {n, ...},
+--                    best, total, timed, perfect }
+-- Lists are stored as arrays and turned into sets in memory. best is the
+-- fastest solve without hints (0 = none yet), total / timed the average.
+
+local TIMES = { "best", "total", "timed", "perfect" }
 
 local function toSet(list)
     local set = {}
@@ -188,6 +192,7 @@ function packs.loadProgress(saved)
                 solved = toSet(p.solved),
                 invalid = toSet(p.invalid),
             }
+            for _, k in ipairs(TIMES) do progress[file][k] = tonumber(p[k]) or 0 end
         end
     end
     return progress
@@ -197,6 +202,7 @@ function packs.saveableProgress(progress)
     local out = {}
     for file, p in pairs(progress) do
         out[file] = { count = p.count, size = p.size, last = p.last, solved = toList(p.solved), invalid = toList(p.invalid) }
+        for _, k in ipairs(TIMES) do out[file][k] = p[k] end
     end
     return out
 end
@@ -204,10 +210,28 @@ end
 function packs.entry(progress, file)
     local p = progress[file]
     if not p then
-        p = { count = 0, size = 0, last = 0, solved = {}, invalid = {} }
+        p = { count = 0, size = 0, last = 0, solved = {}, invalid = {}, best = 0, total = 0, timed = 0, perfect = 0 }
         progress[file] = p
     end
     return p
+end
+
+-- Starts a pack's progress over (its file changed).
+function packs.reset(p)
+    p.solved, p.invalid, p.last = {}, {}, 0
+    for _, k in ipairs(TIMES) do p[k] = 0 end
+end
+
+-- Records a solve of one of the pack's puzzles. Returns true for a new best.
+function packs.recordSolve(p, n, seconds, hints, mistakes)
+    p.solved[n] = true
+    p.timed, p.total = p.timed + 1, p.total + seconds
+    if hints == 0 and mistakes == 0 then p.perfect = p.perfect + 1 end
+    if hints == 0 and (p.best == 0 or seconds < p.best) then
+        p.best = seconds
+        return true
+    end
+    return false
 end
 
 function packs.solvedCount(p)
