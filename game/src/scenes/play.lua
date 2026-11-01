@@ -56,6 +56,13 @@ function Play:panelShown()
     return not self.app.settings.boardOnly or self.hint ~= nil
 end
 
+-- With Settings → Number pad → Side panel, and the panel showing, the panel's
+-- number tiles are the pad: the D-pad walks them and A enters the chosen one.
+-- Otherwise the pad pops up next to the cell.
+function Play:padInPanel()
+    return self.app.settings.pad == "panel" and self:panelShown()
+end
+
 function Play:layout()
     local bx = self:panelShown() and 15 or (ui.W - BS) / 2
     if bx ~= BX then
@@ -545,7 +552,7 @@ function Play:busy()
     if next(self.tileFlash) ~= nil then return true end
     if self.pop and self.t - self.pop.t < 0.2 then return true end
     if self.modeT and self.t - self.modeT < 0.2 then return true end
-    if self.pad and self.t - self.pad.t < 0.15 then return true end
+    if self.pad and not self:padInPanel() and self.t - self.pad.t < 0.15 then return true end
     if self.winT and not self.winShown then return true end
     return false
 end
@@ -963,12 +970,15 @@ function Play:drawPanel()
     local numberFirst = self:numberFirst()
     local match = self.pad and self.pad.sel or (settings.matching and g.values[g.cursor] or 0)
     if numberFirst then match = g.lastDigit end
+    -- the tile A would enter (number-first, or the pad when these tiles are
+    -- the pad) gets a tinted fill as well as the outline
+    local picking = numberFirst or (self.pad ~= nil and self:padInPanel())
     local tw, th, gap = 68, 54, 6
     for d = 1, 9 do
         local r, c = math.floor((d - 1) / 3), (d - 1) % 3
         local tx, ty = x + c * (tw + gap), y + r * (th + 8)
         local left = 9 - counts[d]
-        theme.set((numberFirst and d == match) and "same" or "panel")
+        theme.set((picking and d == match) and "same" or "panel")
         ui.rect("fill", tx, ty, tw, th, 7)
         local tf = self.tileFlash[d]
         if tf then
@@ -978,7 +988,7 @@ function Play:drawPanel()
         end
         if d == match then
             theme.set("mark")
-            local lw = numberFirst and 3 or 2
+            local lw = picking and 3 or 2
             love.graphics.setLineWidth(lw)
             ui.rect("line", tx + lw / 2, ty + lw / 2, tw - lw, th - lw, 7)
         end
@@ -1073,7 +1083,7 @@ end
 function Play:draw()
     self:drawBoard()
     if self:panelShown() then self:drawPanel() end
-    self:drawPad()
+    if not self:padInPanel() then self:drawPad() end
     self:drawConfetti()
 end
 

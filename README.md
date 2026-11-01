@@ -4,7 +4,7 @@ A Sudoku game for muOS (MustardOS) handhelds, built with LÖVE 11.5. Designed fo
 the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
 <img src="screenshots/title.png" alt="Title screen" width="49%"> <img src="screenshots/play.png" alt="A Hard puzzle with pencil notes" width="49%">
-<img src="screenshots/theme-paper.png" alt="Paper theme" width="49%"> <img src="screenshots/theme-chalkboard.png" alt="Chalkboard theme with the number pad open" width="49%">
+<img src="screenshots/theme-paper.png" alt="Paper theme" width="49%"> <img src="screenshots/theme-chalkboard.png" alt="Chalkboard theme, choosing a number in the side panel" width="49%">
 
 ## Features
 
@@ -20,7 +20,8 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 - Pen and pencil modes, one-button note filling, notes that clear themselves, and a
   Large notes setting for easier reading
 - Two ways to enter numbers (Settings → Input): **Cell first** picks a cell, then its
-  number from a pad. **Number first** picks a number with L2 / R2, then A puts it in
+  number from the side panel's number tiles or a pop-up pad (Settings → Number pad).
+  **Number first** picks a number with L2 / R2, then A puts it in
   each cell you choose (see "Number-first input" below)
 - Undo and redo, optional mistake checking. With it off, **Check board** in the pause
   menu says how many of your numbers are wrong, but not which, for the cost of a hint
@@ -123,7 +124,7 @@ to use.
 | X | Switch pen / pencil | Switch pen / pencil |
 | Y | Hint, if turned on in Settings | Erase the cell |
 | L1 / R1 | Undo / redo | Undo / redo |
-| L2 / R2 | Previous / next empty cell, hold to repeat (Number first: change the number) | Same, and the pad follows |
+| L2 / R2 | Previous / next empty cell, hold to repeat (Number first: change the number) | Same, and the pad stays open |
 | Select | Fill all notes, or clear them if there are any | |
 | Start / Menu | Pause menu | Pause menu |
 
@@ -154,6 +155,11 @@ person could make right now, with the board highlighting the cells involved:
 In the hint: A does the step's action, Y goes to the next step, L1 goes back, B
 closes. Opening a hint counts as one hint. Hints work from the numbers on the board, not your notes, so
 they're right even when your notes are incomplete.
+
+**Settings → Number pad** sets where you pick the number. With **Side panel** (the
+default), the pad is the panel's nine number tiles: A starts picking there, and the
+chosen tile is tinted and outlined. **Pop-up** opens a 3x3 pad next to the cell.
+Distraction-free mode has no side panel, so it always uses the pop-up.
 
 In pen mode the pad closes after placing a number. In pencil mode it stays open so
 you can toggle several notes. Hints reveal the selected cell, or the easiest unsolved

@@ -106,6 +106,7 @@ storage.DEFAULT_SETTINGS = {
     boardOnly = false, -- distraction-free: just the board, centered
     generator = "classic", -- "classic" | "dlx" (Dancing Links)
     input = "cell", -- "cell" (pick a cell, then its number) | "number" (the other way round)
+    pad = "panel", -- cell first: "panel" (the side panel's number tiles) | "popup" (a 3x3 pad by the cell)
 }
 
 local CHOICES = {
@@ -113,6 +114,7 @@ local CHOICES = {
     theme = {},
     generator = { classic = true, dlx = true },
     input = { cell = true, number = true },
+    pad = { panel = true, popup = true },
 }
 for _, key in ipairs(theme.ORDER) do CHOICES.theme[key] = true end
 
