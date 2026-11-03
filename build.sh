@@ -111,7 +111,7 @@ build_portmaster() {
     mkdir -p "$inst"
     cp "$port/muSudoku.sh" "$inst/"
     cp -R "$port/musudoku" "$inst/"
-    cp "$port/port.json" "$port/gameinfo.xml" "$port/screenshot.png" "$inst/musudoku/"
+    cp "$port/port.json" "$port/gameinfo.xml" "$port/screenshot.png" "$port/cover.png" "$inst/musudoku/"
     cp "$port/README.md" "$inst/musudoku/musudoku.md"
     (cd "$inst" && zip -qr -X "$out" .)
     rm -rf "$inst"
