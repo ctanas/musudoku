@@ -1,4 +1,4 @@
--- muSudoku: Sudoku for muOS (MustardOS)
+-- muSudoku: Sudoku for handhelds
 -- Entry point: owns the scene stack, settings, statistics and saving.
 
 local ui = require("src.ui")
@@ -202,7 +202,7 @@ function app.openDaily()
             info = true,
             title = "Set the date first",
             body = "The daily puzzle goes by today's date, and this device's clock isn't set. "
-                .. "Set the date and time in the muOS settings.",
+                .. "Set the date and time in the system settings.",
         })
         return
     end

@@ -1,7 +1,8 @@
 # muSudoku
 
-A Sudoku game for muOS (MustardOS) handhelds, built with LÖVE 11.5. Designed for
-the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
+A Sudoku game for handhelds, built with LÖVE 11.5. It runs on MustardOS, and on other
+handheld systems through PortMaster. Designed for the Anbernic RG34XXSP's 720×480
+screen and scaled to fit other resolutions.
 
 <img src="screenshots/title.png" alt="Title screen" width="49%"> <img src="screenshots/play.png" alt="A Hard puzzle with pencil notes" width="49%">
 <img src="screenshots/theme-paper.png" alt="Paper theme" width="49%"> <img src="screenshots/theme-chalkboard.png" alt="Chalkboard theme, choosing a number in the side panel" width="49%">
@@ -53,9 +54,9 @@ the Anbernic RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
 <img src="screenshots/themes.png" alt="All nine themes. Top row: Cyanotype, Paper, Sakura. Middle: Frankfurt, Solarized Light, Solarized Dark. Bottom: Nord, Gruvbox, Chalkboard" width="100%">
 
-## Install on the device
+## Install on MustardOS
 
-1. Run `./build.sh`, or use a prebuilt `muSudoku_vX.Y.Z.muxapp`.
+1. Run `./build.sh`, or use a prebuilt `muSudoku_vX.Y.muxapp`.
 2. Copy the `.muxapp` to `/mnt/mmc/MUOS/ARCHIVE/` on the SD card.
 3. On the device, open **Applications → Archive Manager** and install it.
 4. Launch **muSudoku** from Applications.
@@ -64,6 +65,12 @@ Saves are stored in `MUOS/application/muSudoku/.game/save/` and puzzle packs in
 `MUOS/application/muSudoku/packs/`. Installing an update over the app should keep both,
 since the package doesn't contain those files, but back them up before reinstalling.
 If the game doesn't start, check `MUOS/application/muSudoku/.game/musudoku.log`.
+
+## Install with PortMaster
+
+Run `./build.sh portmaster`, or download `musudoku.zip` from a release. Copy it to
+`PortMaster/autoinstall/` on the SD card, then open PortMaster. It uses the LÖVE 11.5
+runtime that PortMaster already includes.
 
 ## Daily puzzle
 
@@ -76,7 +83,7 @@ The title screen shows whether today's puzzle is solved and your streak of days 
 in a row. A day counts whenever its puzzle is solved, so finishing yesterday's puzzle
 after midnight still keeps the streak. Daily puzzles don't count toward the
 per-difficulty statistics. The puzzle depends on the device's date, so if the clock
-was never set, the game asks you to set it in the muOS settings first.
+was never set, the game asks you to set it in the system settings first.
 
 ## Puzzle packs
 
@@ -243,7 +250,7 @@ for building.
 ./build.sh run 640x480    # try another resolution
 ./build.sh test           # engine, puzzle pack and hint tests (luajit)
 ./build.sh love           # build/muSudoku.love
-./build.sh                # build/muSudoku_vX.Y.Z.muxapp
+./build.sh                # build/muSudoku_vX.Y.muxapp
 ./build.sh portmaster     # build/portmaster/musudoku/ and build/musudoku.zip
 ```
 
@@ -294,8 +301,8 @@ hidden. A button press draws about 7 frames.
 ### Project layout
 
 ```
-mux_launch.sh        muOS launcher (sets up SDL, saves, runs LÖVE)
-mux_lang.ini         Name and help text shown in the muOS menu
+mux_launch.sh        MustardOS launcher (sets up SDL, saves, runs LÖVE)
+mux_lang.ini         Name and help text shown in the MustardOS menu
 glyph/               Menu icon
 portmaster/          PortMaster launcher, port.json, gameinfo.xml, README and
                      screenshot
@@ -329,9 +336,9 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
 
 ### The LÖVE runtime
 
-muOS doesn't include LÖVE, so the muxapp bundles an aarch64 build of LÖVE 11.5
+MustardOS doesn't include LÖVE, so the muxapp bundles an aarch64 build of LÖVE 11.5
 (`bin/love` and `bin/libs.aarch64/`). `build.sh` downloads a prebuilt runtime by
-saitamasahil (MIT licensed) at a pinned tag, because it's known to work on muOS H700
+saitamasahil (MIT licensed) at a pinned tag, because it's known to work on MustardOS H700
 devices. To use a different
 runtime, set `LOVE_RUNTIME=/path/to/dir` containing `love` and `libs.aarch64/`.
 That bundle includes libraries the game doesn't need, so a trimmed runtime would
@@ -345,7 +352,7 @@ in the game.
 - Game code: MIT (see `LICENSE`)
 - Atkinson Hyperlegible font by the Braille Institute: SIL Open Font License
 - LÖVE: zlib license
-- muOS package's aarch64 LÖVE runtime and launcher structure: saitamasahil (MIT)
+- MustardOS package's aarch64 LÖVE runtime and launcher structure: saitamasahil (MIT)
 - Dancing Links generator: Donald Knuth's Algorithm X
 - Theme colors: Solarized by Ethan Schoonover, Nord by Arctic Ice Studio and Gruvbox
   by Pavel Pertsev (all MIT)

@@ -1,14 +1,14 @@
 #!/bin/bash
 # muSudoku: build script
 #
-#   ./build.sh          build the muOS package  -> build/muSudoku_vX.Y.Z.muxapp
+#   ./build.sh          build the MustardOS package  -> build/muSudoku_vX.Y.muxapp
 #   ./build.sh love     build a .love file for testing on a PC -> build/muSudoku.love
 #   ./build.sh portmaster  build the PortMaster port -> build/portmaster/, build/musudoku.zip
 #   ./build.sh test     run the engine and puzzle pack tests (needs luajit)
 #   ./build.sh run      run the game on this PC (needs love 11.5)
 #
 # The muxapp bundles an aarch64 LÖVE 11.5 runtime (bin/love + bin/libs.aarch64).
-# By default a prebuilt runtime (MIT licensed, proven on muOS H700 devices) is
+# By default a prebuilt runtime (MIT licensed, proven on MustardOS H700 devices) is
 # downloaded at a pinned tag. To use your own runtime, set
 # LOVE_RUNTIME=/path/to/dir containing love and libs.aarch64/.
 set -euo pipefail

@@ -1,4 +1,4 @@
-# Keep LF everywhere: mux_launch.sh and build.sh must run on Linux/muOS.
+# Keep LF everywhere: mux_launch.sh and build.sh must run on Linux/MustardOS.
 * text=auto eol=lf
 
 *.png binary

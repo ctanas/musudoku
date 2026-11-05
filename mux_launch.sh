@@ -3,15 +3,15 @@
 # ICON: musudoku
 # GRID: muSudoku
 
-# muOS (MustardOS) application launcher for muSudoku.
-# Structure follows the muOS application runner conventions.
+# MustardOS application launcher for muSudoku.
+# Structure follows the MustardOS application runner conventions.
 
 . /opt/muos/script/var/func.sh
 
 APP_NAME="muSudoku"
 
 # Find the installed app folder. The script's own folder is the most
-# reliable; the muOS paths are fallbacks.
+# reliable; the MustardOS paths are fallbacks.
 APP_DIRECTORY="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 for CANDIDATE in \
     "$APP_DIRECTORY" \
@@ -68,14 +68,14 @@ START_LOVE() {
 }
 
 if command -v SETUP_APP >/dev/null 2>&1; then
-    # Current muOS: SETUP_APP handles the CPU governor and SDL environment
+    # Current MustardOS: SETUP_APP handles the CPU governor and SDL environment
     SETUP_STAGE_OVERLAY
     SETUP_APP "love" ""
     cd "$GAME_DIRECTORY" || exit 1
     SET_LOVE_ENVIRONMENT
     START_LOVE
 else
-    # Older muOS releases
+    # Older MustardOS releases
     killall -q "playbgm.sh" "mpg123" 2>/dev/null || true
     echo app >/tmp/act_go
     SETUP_SDL_ENVIRONMENT
