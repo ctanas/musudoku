@@ -51,6 +51,7 @@ local QUIT_PAIR = { menu = "start", start = "menu" }
 
 local held = {}          -- [action] = { t = seconds held, next = next repeat time }
 local down = {}          -- [button] = true while a QUIT_PAIR button is held
+local pressed = {}       -- [action] = true while its button is down (for input.isDown)
 local stick = { x = nil, y = nil }
 local triggers = {}      -- [axis] = true while pulled
 
@@ -70,6 +71,7 @@ local function press(button)
         end
     end
     local action = swapped and SWAP[button] or button
+    pressed[action] = true
     if REPEATS[action] then
         held[action] = { t = 0, next = REPEAT_DELAY }
     end
@@ -79,7 +81,14 @@ end
 local function release(button)
     down[button] = nil
     local action = swapped and SWAP[button] or button
+    pressed[action] = nil
     if REPEATS[action] then held[action] = nil end
+end
+
+-- True while the button for `action` is held down (Solo's Y shows the
+-- numbers under shaded cells). Scene changes don't clear it.
+function input.isDown(action)
+    return pressed[action] == true
 end
 
 -- true: L1 / R1 and L2 / R2 trade actions

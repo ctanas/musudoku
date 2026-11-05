@@ -12,6 +12,8 @@ local sudoku = require("src.sudoku")
 local daily = require("src.daily")
 local history = require("src.history")
 local records = require("src.records")
+local SoloGame = require("src.sologame")
+local PairGame = require("src.pairgame")
 
 local VERSION = "1.3.3"
 
@@ -28,6 +30,9 @@ local SCENES = {
     packs = require("src.scenes.packs"),
     pack = require("src.scenes.pack"),
     about = require("src.scenes.about"),
+    choose = require("src.scenes.choose"),
+    soloplay = require("src.scenes.soloplay"),
+    pairplay = require("src.scenes.pairplay"),
 }
 
 local app = {
@@ -41,8 +46,19 @@ local app = {
     redrawRequested = true,
     activeUntil = 0,
     framesDrawn = 0,
+    puzzles = {},       -- Solo and Pairlink puzzles in progress, by kind
+    puzzleStats = {},   -- their statistics, by kind, then size and level
+    puzzleDirty = {},   -- [kind] = true when its puzzle needs saving
+    lastChoice = {},    -- [kind] = { size, difficulty } last started
 }
 _G.app = app
+
+-- The games besides Sudoku. Each has its own puzzle in progress, save file
+-- and statistics, so starting one never replaces another.
+app.PUZZLES = {
+    solo = { name = "Solo", Game = SoloGame, engine = "src.solo", scene = "soloplay", sizes = { 5, 7, 9 } },
+    pairlink = { name = "Pairlink", Game = PairGame, engine = "src.pairlink", scene = "pairplay", sizes = { 7, 8, 9 } },
+}
 
 -- Scene stack ---------------------------------------------------------------
 
@@ -290,8 +306,80 @@ function app.recordSolve()
     return best
 end
 
-function app.quit()
+-- Solo and Pairlink -------------------------------------------------------------
+
+function app.hasPuzzle(kind)
+    local g = app.puzzles[kind]
+    return g ~= nil and not g.solved
+end
+
+function app.markPuzzleDirty(kind)
+    app.puzzleDirty[kind] = true
+end
+
+function app.savePuzzle(kind)
+    app.puzzleDirty[kind] = nil
+    app.lastSave = love.timer.getTime()
+    local g = app.puzzles[kind]
+    if g and not g.solved then
+        storage.savePuzzle(kind, g:serialize())
+    else
+        storage.clearPuzzle(kind)
+    end
+end
+
+function app.savePuzzleStats(kind)
+    storage.savePuzzleStats(kind, app.puzzleStats[kind])
+end
+
+local function puzzleEntry(kind, g)
+    return app.puzzleStats[kind][storage.puzzleStatsKey(g.size, g.difficulty)]
+end
+
+function app.newPuzzleOf(kind, size, difficulty)
+    app.lastChoice[kind] = { size = size, difficulty = difficulty }
+    app.setScene("generating", difficulty, { kind = kind, size = size })
+end
+
+-- A new puzzle replaces the one in progress, which ends that size and
+-- level's streak, as with Sudoku.
+function app.startPuzzle(kind, generated, difficulty)
+    local old = app.puzzles[kind]
+    if old and not old.solved then records.abandon(puzzleEntry(kind, old)) end
+    local g = app.PUZZLES[kind].Game.new(generated, difficulty)
+    app.puzzles[kind] = g
+    local entry = puzzleEntry(kind, g)
+    entry.started = entry.started + 1
+    app.savePuzzleStats(kind)
+    app.savePuzzle(kind)
+    app.setScene(app.PUZZLES[kind].scene)
+end
+
+-- Records a solve and returns true if it set a new best time.
+function app.recordPuzzleSolve(kind)
+    local g = app.puzzles[kind]
+    local t = math.max(1, math.floor(g.elapsed))
+    history.add(app.history, {
+        at = os.time(), kind = kind, size = g.size, difficulty = g.difficulty,
+        time = t, hints = 0, mistakes = 0,
+    })
+    app.saveHistory()
+    local best = records.solve(puzzleEntry(kind, g), t, 0, 0)
+    app.savePuzzleStats(kind)
+    storage.clearPuzzle(kind)
+    return best
+end
+
+-- Every game's puzzle in progress, before quitting or being sent away.
+function app.saveAll()
     if app.game then app.saveGame() end
+    for kind in pairs(app.PUZZLES) do
+        if app.puzzles[kind] then app.savePuzzle(kind) end
+    end
+end
+
+function app.quit()
+    app.saveAll()
     love.event.quit()
 end
 
@@ -389,6 +477,14 @@ function love.load(args)
         app.game = Game.deserialize(saved)
         if not app.game then storage.clearGame() end
     end
+    for kind, info in pairs(app.PUZZLES) do
+        app.puzzleStats[kind] = storage.loadPuzzleStats(kind, info.sizes)
+        local data = storage.loadPuzzle(kind)
+        if data then
+            app.puzzles[kind] = info.Game.deserialize(data)
+            if not app.puzzles[kind] then storage.clearPuzzle(kind) end
+        end
+    end
 
     input.handler = function(action)
         app.wake()
@@ -408,6 +504,8 @@ function love.load(args)
         require("dev.fxshots").start(app)
     elseif os.getenv("MUSUDOKU_HINTSHOTS") then
         require("dev.hintshots").start(app)
+    elseif os.getenv("MUSUDOKU_GAMESHOTS") then
+        require("dev.gameshots").start(app)
     end
 end
 
@@ -418,8 +516,9 @@ function love.update(dt)
     if s and s.update then s:update(dt) end
     if app.fade > 0 then app.fade = math.max(0, app.fade - dt * 6) end
 
-    if app.dirty and love.timer.getTime() - app.lastSave > 1.5 then
-        app.saveGame()
+    if love.timer.getTime() - app.lastSave > 1.5 then
+        if app.dirty then app.saveGame() end
+        for kind in pairs(app.puzzleDirty) do app.savePuzzle(kind) end
     end
 end
 
@@ -477,10 +576,10 @@ end
 
 function love.focus(f)
     app.focused = f
-    if not f and app.game then app.saveGame() end
+    if not f then app.saveAll() end
 end
 
 function love.quit()
-    if app.game then app.saveGame() end
+    app.saveAll()
     return false
 end

@@ -13,6 +13,7 @@ local MIN_SHOWN = 0.45     -- keep the screen up briefly so it doesn't flicker
 
 -- opts.daily: today's puzzle (from daily.today()), built from the date with the
 -- Classic generator so it's the same everywhere.
+-- opts.kind ("solo" or "pairlink") and opts.size: a puzzle of that game.
 function Generating.new(app, difficulty, opts)
     local self = setmetatable({ app = app, difficulty = difficulty, t = 0, opts = opts or {} }, Generating)
     local random, method
@@ -24,12 +25,17 @@ function Generating.new(app, difficulty, opts)
     end
 
     local frameStart = 0
+    local function yield()
+        if love.timer.getTime() - frameStart > FRAME_BUDGET then
+            coroutine.yield()
+        end
+    end
+    local kind = self.opts.kind
     self.co = coroutine.create(function()
-        return sudoku.generate(difficulty, random, function()
-            if love.timer.getTime() - frameStart > FRAME_BUDGET then
-                coroutine.yield()
-            end
-        end, method)
+        if kind then
+            return require(app.PUZZLES[kind].engine).generate(self.opts.size, difficulty, random, yield)
+        end
+        return sudoku.generate(difficulty, random, yield, method)
     end)
     self.beginFrame = function() frameStart = love.timer.getTime() end
     return self
@@ -48,7 +54,9 @@ function Generating:update(dt)
         end
     end
     if self.result and self.t >= MIN_SHOWN then
-        if self.opts.daily then
+        if self.opts.kind then
+            self.app.startPuzzle(self.opts.kind, self.result, self.difficulty)
+        elseif self.opts.daily then
             self.app.startDaily(self.result, self.difficulty, self.opts.daily.key)
         else
             self.app.startGame(self.result, self.difficulty)
@@ -82,8 +90,14 @@ function Generating:draw()
     end
 
     theme.set("text")
-    local d = self.opts.daily
-    if d then
+    local d, kind = self.opts.daily, self.opts.kind
+    if kind then
+        local name = self.app.PUZZLES[kind].name
+        ui.text("Building " .. NAMES[self.difficulty] .. " " .. name .. " puzzle", 0, 262, 26, "bold", "center", ui.W)
+        theme.set("muted")
+        local n = self.opts.size
+        ui.text(n .. "×" .. n .. ". Every puzzle has exactly one solution.", 0, 302, 16, "regular", "center", ui.W)
+    elseif d then
         ui.text("Building today's puzzle", 0, 262, 26, "bold", "center", ui.W)
         theme.set("muted")
         ui.text(d.label .. ", " .. LEVEL_NAMES[self.difficulty] .. ". Everyone gets the same puzzle today.",

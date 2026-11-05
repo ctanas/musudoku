@@ -108,6 +108,7 @@ storage.DEFAULT_SETTINGS = {
     input = "cell", -- "cell" (pick a cell, then its number) | "number" (the other way round)
     pad = "panel", -- cell first: "panel" (the side panel's number tiles) | "popup" (a 3x3 pad by the cell)
     shoulders = "move", -- "move" (L1 / R1 move, L2 / R2 undo) | "undo" (swapped, the layout before 1.3.3)
+    game = "sudoku", -- the title screen's game: "sudoku" | "solo" | "pairlink"
 }
 
 local CHOICES = {
@@ -117,6 +118,7 @@ local CHOICES = {
     input = { cell = true, number = true },
     pad = { panel = true, popup = true },
     shoulders = { move = true, undo = true },
+    game = { sudoku = true, solo = true, pairlink = true },
 }
 for _, key in ipairs(theme.ORDER) do CHOICES.theme[key] = true end
 
@@ -217,6 +219,57 @@ end
 
 function storage.hasGame()
     return love.filesystem.getInfo(GAME_FILE) ~= nil
+end
+
+-- Solo and Pairlink ------------------------------------------------------------
+-- Each has its own puzzle in progress (solo-game.lua) and statistics
+-- (solo-stats.lua), with a records entry per size and level ("7-easy").
+
+local PUZZLE_LEVELS = { "easy", "medium", "hard" }
+
+function storage.puzzleStatsKey(size, difficulty)
+    return size .. "-" .. difficulty
+end
+
+function storage.emptyPuzzleStats(sizes)
+    local stats = {}
+    for _, size in ipairs(sizes) do
+        for _, d in ipairs(PUZZLE_LEVELS) do
+            stats[storage.puzzleStatsKey(size, d)] = require("src.records").empty()
+        end
+    end
+    return stats
+end
+
+function storage.loadPuzzleStats(kind, sizes)
+    local saved = read(kind .. "-stats.lua")
+    local stats = storage.emptyPuzzleStats(sizes)
+    if saved then
+        for key, entry in pairs(stats) do
+            local s = saved[key]
+            if type(s) == "table" then
+                for k in pairs(entry) do entry[k] = tonumber(s[k]) or 0 end
+            end
+        end
+    end
+    return stats
+end
+
+function storage.savePuzzleStats(kind, stats)
+    return write(kind .. "-stats.lua", stats)
+end
+
+function storage.loadPuzzle(kind)
+    return read(kind .. "-game.lua")
+end
+
+function storage.savePuzzle(kind, data)
+    return write(kind .. "-game.lua", data)
+end
+
+function storage.clearPuzzle(kind)
+    local name = kind .. "-game.lua"
+    if love.filesystem.getInfo(name) then love.filesystem.remove(name) end
 end
 
 return storage

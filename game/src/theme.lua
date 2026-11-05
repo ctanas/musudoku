@@ -1,5 +1,5 @@
 -- Color themes. Cyanotype is the default: Prussian-blue paper with white
--- givens and mustard player digits (a nod to MustardOS). Paper is a light
+-- givens and mustard player digits. Paper is a light
 -- theme for bright rooms. Chalkboard is green slate with chalk dust, chalk
 -- digits and a wooden frame around the board.
 
@@ -217,9 +217,28 @@ theme.ORDER = {
     "nord", "gruvbox", "chalkboard",
 }
 
+-- Pairlink line colours, one per pair (pairs past the end reuse them).
+-- Bright tints for dark boards, with the board colour as the number on an
+-- end; deep shades for light boards, where the number is light.
+local LINES_DARK = {
+    "#F2C14E", "#6EC6FF", "#FF8A80", "#8BD48B", "#C9A0FF", "#FFB074",
+    "#5FD3C6", "#F48FB1", "#D4E157", "#C8A27A", "#9FA8DA", "#E0E0E0",
+}
+local LINES_LIGHT = {
+    "#A86F00", "#1565C0", "#C62828", "#2E7D32", "#6A1B9A", "#D84315",
+    "#00796B", "#AD1457", "#827717", "#5D4037", "#283593", "#455A64",
+}
+for k = 1, #LINES_DARK do
+    LINES_DARK[k], LINES_LIGHT[k] = hex(LINES_DARK[k]), hex(LINES_LIGHT[k])
+end
+
 -- `mark` is the accent for text and thin outlines (cursor, matching notes,
 -- selected values). It defaults to `accent`; themes whose accent is too pale
 -- for that on a light board set their own.
+--
+-- `dark` is worked out from the board. Solo's shaded cells (`shade`) are
+-- black in every theme, hiding their number; `shadeText` is that number
+-- while the player peeks at it.
 local compiled = {}
 for key, palette in pairs(PALETTES) do
     local c = {}
@@ -227,6 +246,11 @@ for key, palette in pairs(PALETTES) do
         c[k] = (type(v) == "string" and v:sub(1, 1) == "#") and hex(v) or v
     end
     c.mark = c.mark or c.accent
+    local b = c.board
+    c.dark = 0.2126 * b[1] + 0.7152 * b[2] + 0.0722 * b[3] < 0.4
+    c.shade = c.shade or { 0, 0, 0 }
+    c.shadeText = c.shadeText or (c.dark and c.muted or c.board)
+    c.lines = c.dark and LINES_DARK or LINES_LIGHT
     compiled[key] = c
 end
 
@@ -262,6 +286,13 @@ end
 
 function theme.get(slot)
     return theme.current[slot]
+end
+
+-- Set the draw color to Pairlink pair k's line colour, with optional alpha.
+function theme.setLine(k, alpha)
+    local list = theme.current.lines
+    local c = list[(k - 1) % #list + 1]
+    love.graphics.setColor(c[1], c[2], c[3], alpha or 1)
 end
 
 -- Chalkboard extras -----------------------------------------------------------

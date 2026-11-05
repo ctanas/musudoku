@@ -2,19 +2,37 @@ local ui = require("src.ui")
 local theme = require("src.theme")
 local sound = require("src.sound")
 local daily = require("src.daily")
+local input = require("src.input")
 
 local Title = {}
 Title.__index = Title
 
 local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
 
--- The box on the left plays one short demo: givens appear, then the cursor
--- fills the remaining cells, the way a player would.
+-- The games, in tab order. Left / right (or L1 / R1) switch between them,
+-- and the choice is remembered.
+local GAMES = { { "sudoku", "Sudoku" }, { "solo", "Solo" }, { "pairlink", "Pairlink" } }
+
+-- The box on the left plays one short demo of the chosen game. Sudoku:
+-- givens appear, then the cursor fills the remaining cells, the way a player
+-- would.
 local BOX = { 5, 2, 8, 6, 1, 4, 3, 7, 9 }
 local GIVEN = { true, false, true, false, true, false, true, false, true }
 local FILL_ORDER = { 2, 6, 4, 8 }
 
+-- Solo: the corner 1 must be shaded (keeping it would shade both its
+-- neighbours and cut it off), then the 1s beside it are kept.
+local SOLO_BOX = { 1, 1, 2, 1, 2, 3, 2, 3, 1 }
+local SOLO_SHADE, SOLO_KEEP = 1, { 2, 4 }
+
+-- Pairlink: two lines that fill the box.
+local PAIR_CLUES = { 1, 2, 0, 0, 2, 0, 0, 0, 1 }
+local PAIR_LINES = { { 1, 4, 7, 8, 9 }, { 2, 3, 6, 5 } }
+local PAIR_START = { 0.6, 1.3 } -- when each line starts drawing
+local PAIR_STEP = 0.12          -- per cell
+
 local BOX_X, BOX_Y, CELL = 64, 128, 72
+local DEMO_TIME = 2.4
 
 function Title.new(app)
     local self = setmetatable({ app = app, t = 0, sel = 1 }, Title)
@@ -22,23 +40,46 @@ function Title.new(app)
     return self
 end
 
+function Title:gameIndex()
+    for k, game in ipairs(GAMES) do
+        if game[1] == self.app.settings.game then return k end
+    end
+    return 1
+end
+
 function Title:build()
     local app = self.app
+    local game = app.settings.game
     self.items = {}
-    if app.hasGame() then
-        local g = app.game
-        local where = g.pack and (g.pack.name .. " " .. ui.number(g.pack.index)) or DIFFICULTY_NAMES[g.difficulty]
-        if g.daily then where = "Daily puzzle" end
-        self.items[#self.items + 1] = {
-            label = "Continue",
-            detail = where .. ", " .. ui.formatTime(g.elapsed),
-            run = function() app.setScene("play") end,
-        }
+    if game == "sudoku" then
+        if app.hasGame() then
+            local g = app.game
+            local where = g.pack and (g.pack.name .. " " .. ui.number(g.pack.index)) or DIFFICULTY_NAMES[g.difficulty]
+            if g.daily then where = "Daily puzzle" end
+            self.items[#self.items + 1] = {
+                label = "Continue",
+                detail = where .. ", " .. ui.formatTime(g.elapsed),
+                run = function() app.setScene("play") end,
+            }
+        end
+        self.items[#self.items + 1] = { label = "New puzzle", run = function() app.push("difficulty") end }
+        self.items[#self.items + 1] = { label = "Daily puzzle", detail = self:dailyDetail(), run = app.openDaily }
+        self.items[#self.items + 1] = { label = "Puzzle packs", run = function() app.push("packs") end }
+        self.items[#self.items + 1] = { label = "Statistics", run = function() app.push("stats") end }
+    else
+        local info = app.PUZZLES[game]
+        if app.hasPuzzle(game) then
+            local g = app.puzzles[game]
+            self.items[#self.items + 1] = {
+                label = "Continue",
+                detail = g.size .. "×" .. g.size .. " " .. DIFFICULTY_NAMES[g.difficulty] .. ", "
+                    .. ui.formatTime(g.elapsed),
+                run = function() app.setScene(info.scene) end,
+            }
+        end
+        self.items[#self.items + 1] = { label = "New puzzle", run = function() app.push("choose", game) end }
+        self.items[#self.items + 1] = { label = "Statistics", run = function() app.push("stats", info.name) end }
     end
-    self.items[#self.items + 1] = { label = "New puzzle", run = function() app.push("difficulty") end }
-    self.items[#self.items + 1] = { label = "Daily puzzle", detail = self:dailyDetail(), run = app.openDaily }
-    self.items[#self.items + 1] = { label = "Puzzle packs", run = function() app.push("packs") end }
-    self.items[#self.items + 1] = { label = "Statistics", run = function() app.push("stats") end }
     self.items[#self.items + 1] = { label = "Settings", run = function() app.push("settings") end }
     self.items[#self.items + 1] = { label = "About", run = function() app.push("about") end }
     self.items[#self.items + 1] = { label = "Quit", run = function() app.quit() end }
@@ -65,7 +106,16 @@ function Title:update(dt)
 end
 
 function Title:busy()
-    return self.t < 2.4 -- the box demo plays once
+    return self.t < DEMO_TIME -- the box demo plays once
+end
+
+function Title:switchGame(dir)
+    local k = (self:gameIndex() - 1 + dir) % #GAMES + 1
+    self.app.settings.game = GAMES[k][1]
+    self.app.saveSettings()
+    self.sel, self.t = 1, 0
+    self:build()
+    sound.play("note")
 end
 
 function Title:action(a)
@@ -75,11 +125,17 @@ function Title:action(a)
     elseif a == "down" then
         self.sel = self.sel % #self.items + 1
         sound.play("menu")
+    elseif a == "left" or a == "l1" then
+        self:switchGame(-1)
+    elseif a == "right" or a == "r1" then
+        self:switchGame(1)
     elseif a == "a" or a == "start" then
         sound.play("open")
         self.items[self.sel].run()
     end
 end
+
+-- Demos -----------------------------------------------------------------------
 
 -- When each box cell appears, and where the demo cursor is.
 local function demoState(t)
@@ -100,54 +156,179 @@ local function demoState(t)
     return appear, cursor, cursorT
 end
 
-function Title:drawBox()
-    local t = self.t
-    local appear, cursor = demoState(t)
-    local size = CELL * 3
+local function cellXY(i)
+    return BOX_X + ((i - 1) % 3) * CELL, BOX_Y + math.floor((i - 1) / 3) * CELL
+end
 
+-- The box's surface, grid and border, around `inside` (drawn under the grid).
+local function drawFrame(inside)
+    local size = CELL * 3
     theme.set("board")
     ui.rect("fill", BOX_X, BOX_Y, size, size, 10)
-
-    -- cursor cell
-    local cc = cursor - 1
-    local cx, cy = BOX_X + (cc % 3) * CELL, BOX_Y + math.floor(cc / 3) * CELL
-    theme.set("peer")
-    ui.rect("fill", cx, cy, CELL, CELL, 0)
-
+    inside()
     theme.set("line")
     love.graphics.setLineWidth(1.5)
     for k = 1, 2 do
         love.graphics.line(BOX_X + k * CELL, BOX_Y, BOX_X + k * CELL, BOX_Y + size)
         love.graphics.line(BOX_X, BOX_Y + k * CELL, BOX_X + size, BOX_Y + k * CELL)
     end
-
-    for i = 1, 9 do
-        local at = appear[i]
-        if t >= at then
-            local p = ui.ease((t - at) / 0.25)
-            local x = BOX_X + ((i - 1) % 3) * CELL + CELL / 2
-            local y = BOX_Y + math.floor((i - 1) / 3) * CELL + CELL / 2
-            theme.set(GIVEN[i] and "given" or "user", p)
-            love.graphics.push()
-            love.graphics.translate(x, y)
-            local sc = GIVEN[i] and 1 or (1 + 0.25 * (1 - p))
-            love.graphics.scale(sc)
-            ui.centered(tostring(BOX[i]), 0, 0, 44, "bold", "center")
-            love.graphics.pop()
-        end
-    end
-
     theme.set("boxLine")
     love.graphics.setLineWidth(3)
     ui.rect("line", BOX_X, BOX_Y, size, size, 10)
+end
 
+local function drawCursorAt(i)
+    local x, y = cellXY(i)
     theme.set("mark")
     love.graphics.setLineWidth(3)
-    ui.rect("line", cx + 3, cy + 3, CELL - 6, CELL - 6, 6)
+    ui.rect("line", x + 3, y + 3, CELL - 6, CELL - 6, 6)
+end
+
+-- A number popping in at time `at` (bigger at first unless `still`).
+local function drawPopIn(str, i, t, at, slot, still, size)
+    if t < at then return end
+    local p = ui.ease((t - at) / 0.25)
+    local x, y = cellXY(i)
+    theme.set(slot, p)
+    love.graphics.push()
+    love.graphics.translate(x + CELL / 2, y + CELL / 2)
+    love.graphics.scale(still and 1 or (1 + 0.25 * (1 - p)))
+    ui.centered(str, 0, 0, size or 44, "bold", "center")
+    love.graphics.pop()
+end
+
+function Title:drawSudokuBox()
+    local t = self.t
+    local appear, cursor = demoState(t)
+    drawFrame(function()
+        local x, y = cellXY(cursor)
+        theme.set("peer")
+        ui.rect("fill", x, y, CELL, CELL, 0)
+    end)
+    for i = 1, 9 do
+        drawPopIn(tostring(BOX[i]), i, t, appear[i], GIVEN[i] and "given" or "user", GIVEN[i])
+    end
+    drawCursorAt(cursor)
+end
+
+function Title:drawSoloBox()
+    local t = self.t
+    local shadeAt, keepAt = 0.9, { 1.35, 1.65 }
+    local shade = t >= shadeAt and ui.ease((t - shadeAt) / 0.2) or 0
+    drawFrame(function()
+        if shade > 0 then
+            local x, y = cellXY(SOLO_SHADE)
+            local inset = (1 - shade) * CELL / 2
+            theme.set("shade")
+            ui.rect("fill", x + inset, y + inset, CELL - inset * 2, CELL - inset * 2, 4)
+        end
+    end)
+    for i = 1, 9 do
+        -- the shaded cell's number goes once the black has covered it
+        if not (i == SOLO_SHADE and shade >= 1) then
+            drawPopIn(tostring(SOLO_BOX[i]), i, t, 0.15 + (i - 1) * 0.05, "given", true)
+        end
+    end
+    local cursor = SOLO_SHADE
+    for n, i in ipairs(SOLO_KEEP) do
+        if t >= keepAt[n] - 0.15 then cursor = i end
+        if t >= keepAt[n] then
+            local x, y = cellXY(i)
+            theme.set("mark", 0.9 * ui.ease((t - keepAt[n]) / 0.2))
+            love.graphics.setLineWidth(3)
+            love.graphics.circle("line", x + CELL / 2, y + CELL / 2, CELL * 0.36)
+        end
+    end
+    if t >= 0.6 then drawCursorAt(cursor) end
+end
+
+function Title:drawPairBox()
+    local t = self.t
+    local width = math.floor(CELL * 0.14)
+    local drawn, head = {}, nil
+    for k, line in ipairs(PAIR_LINES) do
+        local steps = math.floor((t - PAIR_START[k]) / PAIR_STEP)
+        drawn[k] = math.max(0, math.min(#line - 1, steps)) + 1
+        if t >= PAIR_START[k] then head = line[drawn[k]] end
+    end
+    drawFrame(function()
+        for k, line in ipairs(PAIR_LINES) do
+            if t >= PAIR_START[k] then
+                for s = 1, drawn[k] do
+                    local x, y = cellXY(line[s])
+                    theme.setLine(k, 0.16)
+                    ui.rect("fill", x, y, CELL, CELL, 0)
+                end
+            end
+        end
+    end)
+    love.graphics.setLineWidth(width)
+    for k, line in ipairs(PAIR_LINES) do
+        if t >= PAIR_START[k] and drawn[k] >= 2 then
+            theme.setLine(k)
+            local points = {}
+            for s = 1, drawn[k] do
+                local x, y = cellXY(line[s])
+                points[#points + 1] = x + CELL / 2
+                points[#points + 1] = y + CELL / 2
+            end
+            love.graphics.line(points)
+            for p = 1, #points, 2 do love.graphics.circle("fill", points[p], points[p + 1], width / 2) end
+        end
+    end
+    for i = 1, 9 do
+        local k = PAIR_CLUES[i]
+        local at = 0.15 + (i - 1) * 0.04
+        if k ~= 0 and t >= at then
+            local x, y = cellXY(i)
+            local cx, cy = x + CELL / 2, y + CELL / 2
+            local p = ui.ease((t - at) / 0.25)
+            -- a pop and a square ring when the line arrives
+            local line = PAIR_LINES[k]
+            local linkAt = PAIR_START[k] + (#line - 1) * PAIR_STEP
+            local scale = 1
+            if t >= linkAt then
+                local pop, q = (t - linkAt) / 0.25, (t - linkAt) / 0.45
+                if pop < 1 then scale = 1 + 0.14 * math.sin(math.pi * pop) end
+                if q < 1 then
+                    local half = CELL / 2 + 2 + 14 * ui.ease(q)
+                    theme.setLine(k, 0.8 * (1 - q) ^ 2)
+                    love.graphics.setLineWidth(3)
+                    ui.rect("line", cx - half, cy - half, half * 2, half * 2, 6)
+                end
+            end
+            local half = (CELL / 2 - 1) * scale
+            theme.setLine(k, p)
+            ui.rect("fill", cx - half, cy - half, half * 2, half * 2, 3)
+            theme.set("board", p)
+            ui.centered(tostring(k), cx, cy, 36, "bold", "center")
+        end
+    end
+    if head then drawCursorAt(head) end
+end
+
+-- Game tabs over the box, the current one underlined.
+function Title:drawTabs()
+    local x, cy = BOX_X, BOX_Y - 30
+    local current = self:gameIndex()
+    for k, game in ipairs(GAMES) do
+        local on = (k == current)
+        theme.set(on and "text" or "muted")
+        local w = ui.centered(game[2], x, cy, 20, on and "bold" or "regular", "left")
+        if on then
+            theme.set("accent")
+            ui.rect("fill", x, cy + 14, w, 3, 1.5)
+        end
+        x = x + w + 18
+    end
 end
 
 function Title:draw()
-    self:drawBox()
+    self:drawTabs()
+    local game = self.app.settings.game
+    if game == "solo" then self:drawSoloBox()
+    elseif game == "pairlink" then self:drawPairBox()
+    else self:drawSudokuBox() end
 
     local x = 352
     theme.set("text")
@@ -172,7 +353,7 @@ function Title:draw()
 
     theme.set("muted")
     ui.centered("Version " .. self.app.version, 24, 452, 13, "regular", "left")
-    ui.hints({ { "A", "Select" } }, 696, 452, "right")
+    ui.hints({ { input.pair("l1"), "Game" }, { "A", "Select" } }, 696, 452, "right")
 end
 
 return Title

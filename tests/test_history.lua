@@ -30,11 +30,19 @@ check("clean keeps valid entries", #cleaned == 2, #cleaned)
 check("clean fills missing counts", cleaned[1].mistakes == 0 and cleaned[1].hints == 1)
 check("clean drops unknown difficulty", cleaned[2].difficulty == nil)
 check("clean of nothing", #history.clean(nil) == 0)
+local games = history.clean({
+    { at = 4, kind = "solo", time = 70, size = 7, difficulty = "hard" },
+    { at = 5, kind = "pairlink", time = 80, size = "9", difficulty = "easy" },
+})
+check("clean keeps Solo and Pairlink", #games == 2 and games[1].size == 7 and games[2].size == 9)
 
 -- labels and notes
 check("puzzle label", history.label({ kind = "puzzle", difficulty = "master" }) == "Master")
 check("daily label", history.label({ kind = "daily", difficulty = "easy" }) == "Daily, Easy")
 check("pack label", history.label({ kind = "pack", pack = "Starter pack", index = 12 }) == "Starter pack #12")
+check("Solo label", history.label({ kind = "solo", size = 7, difficulty = "hard" }) == "Solo 7×7, Hard")
+check("Pairlink label", history.label({ kind = "pairlink", size = 9, difficulty = "easy" }) == "Pairlink 9×9, Easy")
+check("no note for Solo", history.note({ kind = "solo", hints = 0, mistakes = 0 }) == "")
 check("perfect", history.note({ hints = 0, mistakes = 0 }) == "Perfect")
 check("hints and mistakes", history.note({ hints = 2, mistakes = 1 }) == "1 mistake, 2 hints",
     history.note({ hints = 2, mistakes = 1 }))

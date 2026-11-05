@@ -6,7 +6,8 @@ local history = require("src.history")
 local daily = require("src.daily")
 local input = require("src.input")
 
--- Statistics, in pages: per-difficulty numbers, streaks and recent solves.
+-- Statistics, in pages: Sudoku's per-difficulty numbers and streaks, Solo's
+-- and Pairlink's per size and level, and recent solves of every kind.
 -- L2 / R2 (see input.lua) or left / right switch pages.
 local Stats = {}
 Stats.__index = Stats
@@ -27,11 +28,28 @@ local COLUMNS = {
     { label = "Average", x = 656 },
 }
 
-local PAGES = { "Puzzles", "Streaks", "Recent" }
+-- Solo and Pairlink pages: a row per size and level
+local GAME_LEVELS = { { "easy", "Easy" }, { "medium", "Medium" }, { "hard", "Hard" } }
+local GAME_COLUMNS = {
+    { label = "Started", x = 256 },
+    { label = "Solved", x = 330 },
+    { label = "Best", x = 412 },
+    { label = "Average", x = 498 },
+    { label = "Streak", x = 574 },
+    { label = "Longest", x = 656 },
+}
+local GAME_PAGES = { Solo = "solo", Pairlink = "pairlink" }
+
+local PAGES = { "Sudoku", "Streaks", "Solo", "Pairlink", "Recent" }
 local RECENT_ROWS = 8
 
-function Stats.new(app)
-    return setmetatable({ app = app, t = 0, page = 1, scroll = 1 }, Stats)
+-- `page` (optional): the page to open on, by name.
+function Stats.new(app, page)
+    local self = setmetatable({ app = app, t = 0, page = 1, scroll = 1 }, Stats)
+    for k, name in ipairs(PAGES) do
+        if name == page then self.page = k end
+    end
+    return self
 end
 
 function Stats:update(dt)
@@ -56,7 +74,20 @@ function Stats:action(a)
         end
     elseif a == "y" then
         sound.play("open")
-        if PAGES[self.page] == "Recent" then
+        local kind = GAME_PAGES[PAGES[self.page]]
+        if kind then
+            local name = PAGES[self.page]
+            app.push("confirm", {
+                title = "Reset " .. name .. " statistics?",
+                body = "Solve counts, best times and streaks for every " .. name
+                    .. " size and level will be cleared. Recent solves stay.",
+                yes = "Reset",
+                onYes = function()
+                    app.puzzleStats[kind] = storage.emptyPuzzleStats(app.PUZZLES[kind].sizes)
+                    app.savePuzzleStats(kind)
+                end,
+            })
+        elseif PAGES[self.page] == "Recent" then
             app.push("confirm", {
                 title = "Clear recent solves?",
                 body = "The list of recent solves will be emptied. Other statistics stay.",
@@ -69,7 +100,7 @@ function Stats:action(a)
             })
         else
             app.push("confirm", {
-                title = "Reset statistics?",
+                title = "Reset Sudoku statistics?",
                 body = "Solve counts, best times and streaks for every difficulty will be cleared. "
                     .. "Daily puzzle records and recent solves stay.",
                 yes = "Reset",
@@ -146,6 +177,59 @@ function Stats:drawPuzzles()
     ui.text(summary, 64, 392, 16, "regular", "left", 592)
 end
 
+-- Solo or Pairlink: a row per size and level, grouped by size.
+function Stats:drawGame(kind)
+    local stats, sizes = self.app.puzzleStats[kind], self.app.PUZZLES[kind].sizes
+    local y = 126
+    theme.set("muted")
+    for _, col in ipairs(GAME_COLUMNS) do
+        ui.centered(col.label, col.x, y, 15, "regular", "right")
+    end
+    theme.set("line")
+    love.graphics.setLineWidth(1)
+    love.graphics.line(64, y + 18, 656, y + 18)
+
+    local cy = y + 18
+    local started, solved = 0, 0
+    for s, size in ipairs(sizes) do
+        cy = cy + (s > 1 and 8 or 0)
+        for _, level in ipairs(GAME_LEVELS) do
+            cy = cy + 26
+            local e = stats[storage.puzzleStatsKey(size, level[1])]
+            started, solved = started + e.started, solved + e.solved
+            theme.set("text")
+            local w = ui.centered(size .. "×" .. size, 64, cy - 12, 18, "bold", "left")
+            theme.set("muted")
+            ui.centered(level[2], 64 + math.max(w, 44) + 12, cy - 12, 18, "regular", "left")
+            local values = {
+                tostring(e.started),
+                tostring(e.solved),
+                e.best > 0 and ui.formatTime(e.best) or "None",
+                e.solved > 0 and ui.formatTime(e.total / e.solved) or "None",
+                tostring(e.streak),
+                tostring(e.bestStreak),
+            }
+            for c, col in ipairs(GAME_COLUMNS) do
+                local empty = values[c] == "None" or values[c] == "0"
+                theme.set(empty and "muted" or "text")
+                ui.centered(values[c], col.x, cy - 12, 17, "regular", "right")
+            end
+        end
+        theme.set("line")
+        love.graphics.line(64, cy + 4, 656, cy + 4)
+    end
+
+    theme.set("muted")
+    local summary
+    if started == 0 then
+        summary = "Solve a puzzle to start filling in this table."
+    else
+        summary = string.format("%d of %d puzzles solved. A streak counts puzzles solved in a row. "
+            .. "Starting a new one first ends it.", solved, started)
+    end
+    ui.text(summary, 64, cy + 12, 15, "regular", "left", 592)
+end
+
 function Stats:drawStreaks()
     local stats, y = self.app.stats, 126
     theme.set("muted")
@@ -189,8 +273,8 @@ function Stats:drawRecent()
     local y = 126
     if #list == 0 then
         theme.set("muted")
-        ui.text("Solved puzzles show up here, newest first: generated ones, daily puzzles and pack puzzles.",
-            64, y, 18, "regular", "left", 592)
+        ui.text("Solved puzzles show up here, newest first, from every game: Sudoku (generated, daily and "
+            .. "pack puzzles), Solo and Pairlink.", 64, y, 18, "regular", "left", 592)
         return
     end
     theme.set("muted")
@@ -236,6 +320,7 @@ function Stats:draw()
     local page = PAGES[self.page]
     if page == "Recent" then self:drawRecent()
     elseif page == "Streaks" then self:drawStreaks()
+    elseif GAME_PAGES[page] then self:drawGame(GAME_PAGES[page])
     else self:drawPuzzles() end
 
     local reset = (PAGES[self.page] == "Recent") and "Clear" or "Reset"

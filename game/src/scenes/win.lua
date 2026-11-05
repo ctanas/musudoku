@@ -2,12 +2,15 @@ local ui = require("src.ui")
 local theme = require("src.theme")
 local sound = require("src.sound")
 local daily = require("src.daily")
+local storage = require("src.storage")
 
 local Win = { overlay = true }
 Win.__index = Win
 
 local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
 
+-- info.newBest: the solve set a best time. info.kind ("solo" or
+-- "pairlink"): that game was solved; without it, Sudoku.
 function Win.new(app, info)
     return setmetatable({ app = app, t = 0, info = info or {} }, Win)
 end
@@ -23,6 +26,20 @@ end
 function Win:action(a)
     if self.t < 0.3 then return end
     local app = self.app
+    local kind = self.info.kind
+    if kind then
+        local g = app.puzzles[kind]
+        if a == "a" then
+            sound.play("open")
+            app.puzzles[kind] = nil
+            app.newPuzzleOf(kind, g.size, g.difficulty)
+        elseif a == "b" or a == "start" then
+            sound.play("close")
+            app.puzzles[kind] = nil
+            app.setScene("title")
+        end
+        return
+    end
     if a == "a" and app.game.daily then
         sound.play("close")
         app.game = nil
@@ -49,13 +66,21 @@ end
 
 function Win:draw()
     local p = ui.ease(self.t / 0.22)
-    local g = self.app.game
-    local heading = DIFFICULTY_NAMES[g.difficulty] .. " puzzle"
-    if g.pack then heading = g.pack.name .. ", puzzle " .. ui.number(g.pack.index) end
-    if g.daily then heading = "Daily puzzle, " .. daily.label(g.daily) end
-
-    local stats = self.app.stats[g.difficulty]
-    if g.pack or g.daily then stats = nil end
+    local kind = self.info.kind
+    local g, heading, stats
+    if kind then
+        g = self.app.puzzles[kind]
+        heading = self.app.PUZZLES[kind].name .. " " .. g.size .. "×" .. g.size .. ", "
+            .. DIFFICULTY_NAMES[g.difficulty]
+        stats = self.app.puzzleStats[kind][storage.puzzleStatsKey(g.size, g.difficulty)]
+    else
+        g = self.app.game
+        heading = DIFFICULTY_NAMES[g.difficulty] .. " puzzle"
+        if g.pack then heading = g.pack.name .. ", puzzle " .. ui.number(g.pack.index) end
+        if g.daily then heading = "Daily puzzle, " .. daily.label(g.daily) end
+        stats = self.app.stats[g.difficulty]
+        if g.pack or g.daily then stats = nil end
+    end
     local lines = {}
     if g.daily then
         local today = daily.today()
@@ -82,19 +107,22 @@ function Win:draw()
         local best = stats.streak >= stats.bestStreak
         lines[#lines + 1] = { stats.streak .. " solved in a row" .. (best and ", your best" or ""), best }
     end
-    local parts = {}
-    if self.app.settings.mistakes then
-        parts[#parts + 1] = g.mistakes == 1 and "1 mistake" or (g.mistakes .. " mistakes")
-    end
-    if g.hints > 0 or self.app.settings.hints ~= "off" then
-        parts[#parts + 1] = g.hints == 1 and "1 hint" or (g.hints .. " hints")
-    end
-    if #parts > 0 then
-        local text = table.concat(parts, ", ")
-        lines[#lines + 1] = { text:sub(1, 1):upper() .. text:sub(2), false }
-    end
-    if g.hints > 0 and not g.pack and not g.daily then
-        lines[#lines + 1] = { "Solves with hints don't count toward best times.", false, 14 }
+    -- Sudoku's mistakes and hints (Solo and Pairlink have neither)
+    if not kind then
+        local parts = {}
+        if self.app.settings.mistakes then
+            parts[#parts + 1] = g.mistakes == 1 and "1 mistake" or (g.mistakes .. " mistakes")
+        end
+        if g.hints > 0 or self.app.settings.hints ~= "off" then
+            parts[#parts + 1] = g.hints == 1 and "1 hint" or (g.hints .. " hints")
+        end
+        if #parts > 0 then
+            local text = table.concat(parts, ", ")
+            lines[#lines + 1] = { text:sub(1, 1):upper() .. text:sub(2), false }
+        end
+        if g.hints > 0 and not g.pack and not g.daily then
+            lines[#lines + 1] = { "Solves with hints don't count toward best times.", false, 14 }
+        end
     end
 
     -- the card grows with its lines

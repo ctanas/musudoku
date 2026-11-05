@@ -1,6 +1,7 @@
 -- Recent solves, newest first, for the Recent page in Statistics.
--- Each entry: { at = os.time(), kind = "puzzle" | "daily" | "pack",
--- difficulty, pack (name), index, time (seconds), hints, mistakes }.
+-- Each entry: { at = os.time(), kind = "puzzle" | "daily" | "pack" | "solo"
+-- | "pairlink", difficulty, pack (name), index, size (Solo and Pairlink),
+-- time (seconds), hints, mistakes }.
 -- Pure Lua, testable with luajit.
 
 local history = {}
@@ -8,6 +9,8 @@ local history = {}
 history.MAX = 50
 
 local NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
+local KINDS = { puzzle = true, daily = true, pack = true, solo = true, pairlink = true }
+local GAMES = { solo = "Solo", pairlink = "Pairlink" }
 local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
 
 -- Before this the clock was never set, so the date means nothing.
@@ -24,13 +27,12 @@ function history.clean(saved)
     local out = {}
     if type(saved) ~= "table" then return out end
     for _, e in ipairs(saved) do
-        if type(e) == "table" and tonumber(e.at) and tonumber(e.time)
-            and (e.kind == "puzzle" or e.kind == "daily" or e.kind == "pack") then
+        if type(e) == "table" and tonumber(e.at) and tonumber(e.time) and KINDS[e.kind] then
             out[#out + 1] = {
                 at = tonumber(e.at), kind = e.kind, time = tonumber(e.time),
                 difficulty = NAMES[e.difficulty] and e.difficulty or nil,
                 pack = type(e.pack) == "string" and e.pack or nil,
-                index = tonumber(e.index),
+                index = tonumber(e.index), size = tonumber(e.size),
                 hints = tonumber(e.hints) or 0, mistakes = tonumber(e.mistakes) or 0,
             }
             if #out >= history.MAX then break end
@@ -39,16 +41,22 @@ function history.clean(saved)
     return out
 end
 
--- "Hard", "Daily, Expert", "Starter pack #12"
+-- "Hard", "Daily, Expert", "Starter pack #12", "Solo 7×7, Hard"
 function history.label(e)
     local level = NAMES[e.difficulty] or ""
     if e.kind == "daily" then return "Daily, " .. level end
     if e.kind == "pack" then return (e.pack or "Pack") .. " #" .. (e.index or "?") end
+    if GAMES[e.kind] then
+        local size = e.size and (" " .. e.size .. "×" .. e.size) or ""
+        return GAMES[e.kind] .. size .. ", " .. level
+    end
     return level
 end
 
--- "Perfect", "2 hints", "1 mistake, 1 hint"
+-- "Perfect", "2 hints", "1 mistake, 1 hint". Nothing for Solo and Pairlink,
+-- which have neither hints nor mistakes.
 function history.note(e)
+    if GAMES[e.kind] then return "" end
     if e.hints == 0 and e.mistakes == 0 then return "Perfect" end
     local parts = {}
     if e.mistakes > 0 then parts[#parts + 1] = e.mistakes == 1 and "1 mistake" or (e.mistakes .. " mistakes") end

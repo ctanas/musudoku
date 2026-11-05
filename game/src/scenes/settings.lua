@@ -23,7 +23,7 @@ local ROWS = {
       choices = { { "move", "L1 / R1 move" }, { "undo", "L1 / R1 undo" } },
       about = "L1 / R1 move: they jump to empty cells or change the number, and L2 / R2 undo and redo. L1 / R1 undo: the other way round, as before version 1.3.3." },
     { key = "mistakes", label = "Check mistakes", about = "Wrong numbers turn red and are counted. With this off, Check board in the pause menu says how many are wrong, for the cost of a hint." },
-    { key = "matching", label = "Highlight matching numbers", about = "Cells and notes with the selected number light up." },
+    { key = "matching", label = "Highlight matching numbers", about = "Cells and notes with the selected number light up. In Solo, its repeats in the cursor's row and column do." },
     { key = "autoclear", label = "Clear notes automatically", about = "Placing a number removes it from notes in the same row, column and box." },
     { key = "largeNotes", label = "Large notes", about = "Bigger note digits, easier to read on a small screen." },
     { key = "hints", label = "Hints",

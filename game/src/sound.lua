@@ -62,6 +62,13 @@ local DEFS = {
         }, 0.55)
     end,
     hint   = function() return synth({ { 880, 0, 0.12, 0.16 }, { 1319, 0.05, 0.16, 0.12 } }, 0.22) end,
+    -- Pairlink: a pair's line reaches its other number
+    link   = function()
+        return synth({
+            { 659, 0, 0.16, 0.16, "soft" }, { 988, 0.05, 0.18, 0.14, "soft" },
+            { 1319, 0.10, 0.24, 0.12 }, { 1976, 0.10, 0.20, 0.05 },
+        }, 0.36)
+    end,
     win    = function()
         return synth({
             { 523, 0.00, 0.30, 0.18, "soft" }, { 659, 0.11, 0.30, 0.18, "soft" },

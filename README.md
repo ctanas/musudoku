@@ -1,8 +1,9 @@
 # muSudoku
 
-A Sudoku game for handhelds, built with LÖVE 11.5. It runs on MustardOS, and on other
-handheld systems through PortMaster. Designed for the Anbernic RG34XXSP's 720×480
-screen and scaled to fit other resolutions.
+A Sudoku game for handhelds, built with LÖVE 11.5, with two more logic puzzles: **Solo**
+and **Pairlink** (see their sections below). It runs on MustardOS, and on other handheld
+systems through PortMaster. Designed for the Anbernic RG34XXSP's 720×480 screen and
+scaled to fit other resolutions.
 
 <img src="screenshots/title.png" alt="Title screen" width="49%"> <img src="screenshots/play.png" alt="A Hard puzzle with pencil notes" width="49%">
 <img src="screenshots/theme-paper.png" alt="Paper theme" width="49%"> <img src="screenshots/theme-chalkboard.png" alt="Chalkboard theme, choosing a number in the side panel" width="49%">
@@ -51,6 +52,11 @@ screen and scaled to fit other resolutions.
 - Battery friendly: the screen is only redrawn when something changes, and with
   sound effects off the audio system isn't started at all (see "Idle rendering"
   below)
+- Two more games, chosen with L1 / R1 on the title screen: **Solo**, shading cells
+  until no number repeats (5×5, 7×7 and 9×9), and **Pairlink**, joining pairs of
+  numbers with lines that fill the board (7×7, 8×8 and 9×9). Both are generated on
+  the device with exactly one solution, in Easy, Medium and Hard, and each keeps its
+  own puzzle in progress and statistics per size and level
 
 <img src="screenshots/themes.png" alt="All nine themes. Top row: Cyanotype, Paper, Sakura. Middle: Frankfurt, Solarized Light, Solarized Dark. Bottom: Nord, Gruvbox, Chalkboard" width="100%">
 
@@ -61,7 +67,8 @@ screen and scaled to fit other resolutions.
 3. On the device, open **Applications → Archive Manager** and install it.
 4. Launch **muSudoku** from Applications.
 
-Saves are stored in `MUOS/application/muSudoku/.game/save/` and puzzle packs in
+Saves (each game's puzzle in progress and statistics) are stored in
+`MUOS/application/muSudoku/.game/save/` and puzzle packs in
 `MUOS/application/muSudoku/packs/`. Installing an update over the app should keep both,
 since the package doesn't contain those files, but back them up before reinstalling.
 If the game doesn't start, check `MUOS/application/muSudoku/.game/musudoku.log`.
@@ -74,6 +81,80 @@ count the time asleep. Idle sleep follows the system's power settings, as in oth
 Run `./build.sh portmaster`, or download `musudoku.zip` from a release. Copy it to
 `PortMaster/autoinstall/` on the SD card, then open PortMaster. It uses the LÖVE 11.5
 runtime that PortMaster already includes.
+
+## Solo
+
+<img src="screenshots/solo.png" alt="Solo, a 7×7 Medium puzzle part way through: black shaded cells, with rings on the cells kept beside them" width="49%"> <img src="screenshots/solo-paper.png" alt="Solo, a 9×9 Hard puzzle in the Paper theme" width="49%">
+
+Solo is a Hitori-style puzzle. The board is full of numbers, and some repeat. Shade
+cells until:
+
+- no number appears twice, unshaded, in a row or column
+- shaded cells touch only at corners, never side by side
+- the unshaded cells form one area, connected side by side
+
+As usual for this kind of puzzle, a cell is only shaded to remove a repeat, which is
+what gives each puzzle a single solution. Any shading that keeps the rules counts as
+solved.
+
+| Button | Solo |
+|---|---|
+| D-pad | Move (hold to repeat, wraps at edges) |
+| A | Shade the cell, or unshade it |
+| X | Mark the cell to keep (a ring), or remove the mark |
+| B | Clear the cell |
+| Y (hold) | Show the numbers under shaded cells |
+| L2 / R2 | Undo / redo |
+| Start / Menu | Pause menu |
+
+Shaded cells turn black and hide their number; hold Y to see them while it's held.
+The side panel counts the rows and columns that still have a repeat. With Highlight
+matching numbers on, the cursor's row and column light up, with its number's repeats
+picked out.
+
+**Sizes and levels.** 5×5, 7×7 and 9×9 (one digit per cell), each in three levels,
+graded by the reasoning a person needs:
+
+- **Easy**: numbers without repeats stay; cells beside a shaded cell stay; a kept
+  number's repeats are shaded; in x y x the y stays; next to an x x pair, other x's in
+  that line are shaded
+- **Medium**: adds connection: a cell whose shading would cut the unshaded area in two
+  stays
+- **Hard**: needs trying a cell one way and finding that it breaks a rule
+
+## Pairlink
+
+<img src="screenshots/pairlink.png" alt="Pairlink, an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%"> <img src="screenshots/pairlink-link.png" alt="The link effect: a bright bead runs along a just-finished line while its number pops with a ring" width="49%">
+
+Pairlink is a Numberlink-style puzzle. Join each pair of matching numbers with a line:
+
+- lines go up, down, left or right from cell to cell
+- they never cross, branch or pass through another number
+- together they use every cell
+
+| Button | Pairlink |
+|---|---|
+| D-pad | Move the cursor; while drawing, draw the line (step back along it to take steps back) |
+| A | Start drawing from a number, or from a cell of a line (the line is cut back there); A again stops |
+| B | Erase the line under the cursor (or stop drawing) |
+| L1 / R1 | Jump to the previous / next pair that isn't linked yet |
+| L2 / R2 | Undo / redo (a whole line drawn, or erased, at a time) |
+| Start / Menu | Pause menu |
+
+Starting from a number replaces that pair's line. Reaching the other number links the
+pair: a bright bead runs along the line, its cells flash in turn, both numbers pop with
+a ring, and a chime plays. Cells a line uses are tinted with its colour, and the side
+panel shows how many pairs are linked and how much of the board is used.
+
+**Sizes and levels.** 7×7, 8×8 and 9×9, each with at most 9 pairs (one digit per
+number), in three levels:
+
+- **Easy**: lines with only one way to go (a number has one way out and any other cell
+  two, so a cell with only that many ways left uses them all; no loops, and no line
+  joins two different pairs)
+- **Medium**: adds reach: a cell only one pair's line can still reach belongs to that
+  pair, and cells side by side that no pair can reach both of aren't linked
+- **Hard**: needs trying a line's next step and finding that it breaks a rule
 
 ## Daily puzzle
 
@@ -138,6 +219,9 @@ to use.
 | Select | Fill all notes, or clear them if there are any | |
 | Start / Menu | Pause menu | Pause menu |
 | Menu + Start | Save and quit | Save and quit |
+
+On the title screen, L1 / R1 (or left / right) switch between Sudoku, Solo and
+Pairlink. Solo's and Pairlink's controls are in their sections above.
 
 These are the default shoulder buttons. **Settings → Shoulder buttons → L1 / R1 undo**
 swaps the two pairs everywhere, as before version 1.3.3: L1 / R1 undo and redo, turn
@@ -244,6 +328,28 @@ solution when you start it (see "Puzzle packs"). `./build.sh test` generates puz
 every difficulty with both generators and checks that each has exactly one solution,
 using the other solver to confirm Dancing Links puzzles.
 
+**Solo and Pairlink** (`src/solo.lua`, `src/pairlink.lua`) are built the other way
+round: from a solution. Each has a solver that only uses the reasoning listed for its
+levels, and every step it takes is sound, so when it solves a puzzle completely, that
+solution is the only one. A puzzle is only offered once that solver has finished it,
+so every puzzle has a solution, and just one.
+
+- **Solo** makes a random Latin square (each number once per row and column), shades
+  random cells that don't touch and keep the rest connected, and gives each shaded
+  cell the number of an unshaded cell in its row or column. It tries again until the
+  solver finishes it at the chosen level.
+- **Pairlink** covers the board with many short random lines, whose ends become the
+  numbers, and cuts a line in two wherever the solver gets stuck. Then, the way a
+  Sudoku is dug out, it joins neighbouring lines (one pair fewer each time) and moves
+  line ends around, keeping each change only while the solver can still finish the
+  puzzle at the chosen level. A puzzle still left with more than 9 pairs gets a few
+  more rounds, and is dropped if that isn't enough.
+
+`./build.sh test` also generates Solo and Pairlink puzzles at every size and level,
+checks each solution against the rules, and counts the solutions of the smaller
+boards (Solo 5×5 and 7×7, Pairlink 7×7) by brute force, independently of the solver,
+to confirm there's exactly one.
+
 ## Development
 
 Requirements: LÖVE 11.5 and LuaJIT for running on a PC, plus `bash`, `git` and `zip`
@@ -252,7 +358,7 @@ for building.
 ```sh
 ./build.sh run            # play on a PC (720x480 window)
 ./build.sh run 640x480    # try another resolution
-./build.sh test           # engine, puzzle pack and hint tests (luajit)
+./build.sh test           # engine, puzzle pack, hint, Solo and Pairlink tests (luajit)
 ./build.sh love           # build/muSudoku.love
 ./build.sh                # build/muSudoku_vX.Y.muxapp
 ./build.sh portmaster     # build/portmaster/musudoku/ and build/musudoku.zip
@@ -298,6 +404,10 @@ are off. Turning sound on later loads them then.
 
 `MUSUDOKU_FXSHOTS=1 love game` captures the completion effects mid-animation.
 
+`MUSUDOKU_GAMESHOTS=1 love game` plays through the Solo and Pairlink screens (title
+tabs, new puzzle, play, a link effect, pause, wins and statistics, in several themes)
+and saves screenshots named `g*.png`.
+
 `MUSUDOKU_IDLETEST=1 love game` measures it. On a PC, a puzzle left alone for 10 seconds
 drew 10 frames (one per timer tick) instead of about 600, and none with the timer
 hidden. A button press draws about 7 frames.
@@ -313,7 +423,8 @@ portmaster/          PortMaster launcher, port.json, gameinfo.xml, README and
 screenshots/         Images used in this README (not packaged)
 build.sh             Build, test and run commands
 packs/               Starter pack (copied into the muxapp)
-tests/               Engine and pack-format tests (plain luajit, no LÖVE needed)
+tests/               Engine, pack-format, Solo and Pairlink tests (plain luajit,
+                     no LÖVE needed)
 game/                The LÖVE game (becomes .game/ in the muxapp)
   main.lua           Scene stack, saving, resolution handling
   src/sudoku.lua     Solver, generator and difficulty grader
@@ -325,14 +436,22 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
   src/history.lua    Recent solves for the Statistics page
   src/records.lua    Per-difficulty counts, best times and streaks
   src/hints.lua      Explained hints: finds moves and writes explanations
+  src/solo.lua       Solo solver, generator and grader
+  src/sologame.lua   Solo puzzle in progress: marks, undo/redo, saving
+  src/pairlink.lua   Pairlink solver, generator and grader
+  src/pairgame.lua   Pairlink puzzle in progress: lines, undo/redo, saving
+  src/boardscene.lua What the Solo and Pairlink play screens share
   src/ui.lua         720x480 layout scaling, text and button glyphs
   src/input.lua      Gamepad and keyboard mapping, hold-to-repeat
-  src/theme.lua      Color themes, chalk dust texture and wooden frame
+  src/theme.lua      Color themes, chalk dust texture, wooden frame, Solo's
+                     shading and Pairlink's line colours
   src/sound.lua      Synthesized sound effects
   src/scenes/        Title, difficulty, generating, play, pause, win,
                      settings, statistics, confirm, packs, pack and about
-                     screens
+                     screens, and for Solo and Pairlink: choose (size and
+                     level), soloplay and pairplay
   dev/autoshot.lua   Screenshot harness (left out of builds)
+  dev/gameshots.lua  Screenshot harness for Solo and Pairlink (left out of builds)
   dev/idletest.lua   Measures frames drawn while idle (left out of builds)
   dev/fxshots.lua    Screenshots of the completion effects (left out of builds)
   dev/hintshots.lua  Screenshots of explained hints (left out of builds)

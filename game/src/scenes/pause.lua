@@ -5,8 +5,33 @@ local sound = require("src.sound")
 local Pause = { overlay = true }
 Pause.__index = Pause
 
-function Pause.new(app)
-    local self = setmetatable({ app = app, t = 0, sel = 1 }, Pause)
+-- `kind` ("solo" or "pairlink") pauses that game; without it, Sudoku.
+function Pause.new(app, kind)
+    local self = setmetatable({ app = app, t = 0, sel = 1, kind = kind }, Pause)
+    if kind then
+        self.items = {
+            { label = "Resume", run = function() self:resumeGame() end },
+            { label = "Restart puzzle", run = function()
+                app.push("confirm", {
+                    title = "Restart this puzzle?",
+                    body = (kind == "solo" and "Your shading, dots" or "Your lines") .. " and time will be cleared.",
+                    yes = "Restart",
+                    onYes = function()
+                        app.puzzles[kind]:restart()
+                        app.savePuzzle(kind)
+                        app.setScene(app.PUZZLES[kind].scene)
+                    end,
+                })
+            end },
+            { label = "New puzzle", run = function() app.push("choose", kind) end },
+            { label = "Settings", run = function() app.push("settings") end },
+            { label = "Exit to title", run = function()
+                app.savePuzzle(kind)
+                app.setScene("title")
+            end },
+        }
+        return self
+    end
     self.items = {
         { label = "Resume", run = function() self:resumeGame() end },
         { label = app.settings.boardOnly and "Show side panel" or "Distraction-free", run = function()
@@ -111,7 +136,7 @@ function Pause:draw()
 
     theme.set("text", p)
     ui.text("Paused", x + 32, y + 26, 30, "bold")
-    local g = self.app.game
+    local g = self.kind and self.app.puzzles[self.kind] or self.app.game
     if g then
         theme.set("muted", p)
         ui.centered(ui.formatTime(g.elapsed), x + w - 32, y + 46, 18, "regular", "right")
