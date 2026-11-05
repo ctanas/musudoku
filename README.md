@@ -66,6 +66,9 @@ Saves are stored in `MUOS/application/muSudoku/.game/save/` and puzzle packs in
 since the package doesn't contain those files, but back them up before reinstalling.
 If the game doesn't start, check `MUOS/application/muSudoku/.game/musudoku.log`.
 
+The power button puts the device to sleep during a game, and the puzzle timer doesn't
+count the time asleep. Idle sleep follows the system's power settings, as in other apps.
+
 ## Install with PortMaster
 
 Run `./build.sh portmaster`, or download `musudoku.zip` from a release. Copy it to
@@ -134,6 +137,7 @@ to use.
 | L2 / R2 | Undo / redo | Undo / redo |
 | Select | Fill all notes, or clear them if there are any | |
 | Start / Menu | Pause menu | Pause menu |
+| Menu + Start | Save and quit | Save and quit |
 
 These are the default shoulder buttons. **Settings → Shoulder buttons → L1 / R1 undo**
 swaps the two pairs everywhere, as before version 1.3.3: L1 / R1 undo and redo, turn

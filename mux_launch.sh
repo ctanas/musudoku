@@ -34,7 +34,6 @@ LOG_FILE="$GAME_DIRECTORY/musudoku.log"
 SCREEN_WIDTH="$(GET_VAR device mux/width)"
 SCREEN_HEIGHT="$(GET_VAR device mux/height)"
 SCREEN_RESOLUTION="${SCREEN_WIDTH:-720}x${SCREEN_HEIGHT:-480}"
-CAFFEINE="$(command -v CAFFEINE 2>/dev/null || true)"
 
 SET_LOVE_ENVIRONMENT() {
     mkdir -p "$SAVE_DIRECTORY" "$PACKS_DIRECTORY"
@@ -60,11 +59,11 @@ SET_MALI_EGL_DRIVER() {
     done
 }
 
+# No CAFFEINE here: while it's on, MustardOS ignores the power button as well
+# as idle sleep, so the device couldn't be put to sleep during a game.
 START_LOVE() {
-    [ -n "$CAFFEINE" ] && "$CAFFEINE" on
     SET_VAR "system" "foreground_process" "love"
     "$LOVE_BINARY" . "$SCREEN_RESOLUTION" > "$LOG_FILE" 2>&1
-    [ -n "$CAFFEINE" ] && "$CAFFEINE" off
 }
 
 if command -v SETUP_APP >/dev/null 2>&1; then

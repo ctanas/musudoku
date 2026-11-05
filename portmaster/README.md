@@ -18,5 +18,6 @@ Puzzle packs (text files of puzzles) go in `ports/musudoku/packs/`. A starter pa
 | R2 | Redo |
 | Select | Fill or clear all notes |
 | Start | Pause menu |
+| Menu + Start | Save and quit |
 
 L1 / R1 and L2 / R2 can be swapped in Settings → Shoulder buttons.

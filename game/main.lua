@@ -392,6 +392,7 @@ function love.load(args)
 
     input.handler = function(action)
         app.wake()
+        if action == "quit" then return app.quit() end
         local s = app.top()
         if s and s.action then s:action(action) end
     end

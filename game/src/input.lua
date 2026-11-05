@@ -1,7 +1,7 @@
 -- Turns gamepad buttons, the analog stick and keyboard keys into actions:
 -- up down left right a b x y l1 r1 l2 r2 select start menu, plus
--- digit1..digit9 and erase from a PC keyboard. Directions, l1 and r1 repeat
--- while held.
+-- digit1..digit9 and erase from a PC keyboard, and quit for Menu + Start held
+-- together. Directions, l1 and r1 repeat while held.
 --
 -- The shoulder actions are named after the default layout: L1 / R1 fire l1 /
 -- r1 (move between empty cells, change the number) and L2 / R2 fire l2 / r2
@@ -44,7 +44,13 @@ local SWAP = { l1 = "l2", r1 = "r2", l2 = "l1", r2 = "r1" }
 local PARTNER = { l1 = "r1", l2 = "r2" }
 local swapped = false
 
+-- Menu + Start, in either order, quits. The first of the two fires as usual
+-- (usually opening the pause menu, which calls input.reset()), so they're
+-- tracked apart from `held`.
+local QUIT_PAIR = { menu = "start", start = "menu" }
+
 local held = {}          -- [action] = { t = seconds held, next = next repeat time }
+local down = {}          -- [button] = true while a QUIT_PAIR button is held
 local stick = { x = nil, y = nil }
 local triggers = {}      -- [axis] = true while pulled
 
@@ -56,6 +62,13 @@ end
 
 -- `button` is what was pressed, in default-layout names (see above)
 local function press(button)
+    if QUIT_PAIR[button] then
+        down[button] = true
+        if down[QUIT_PAIR[button]] then
+            fire("quit")
+            return
+        end
+    end
     local action = swapped and SWAP[button] or button
     if REPEATS[action] then
         held[action] = { t = 0, next = REPEAT_DELAY }
@@ -64,6 +77,7 @@ local function press(button)
 end
 
 local function release(button)
+    down[button] = nil
     local action = swapped and SWAP[button] or button
     if REPEATS[action] then held[action] = nil end
 end
