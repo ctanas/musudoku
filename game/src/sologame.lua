@@ -51,6 +51,27 @@ function SoloGame:checkSolved()
     return self.solved
 end
 
+-- The unshaded cells whose number another unshaded cell in their row or
+-- column also has: repeats[i] = true.
+function SoloGame:repeats()
+    local repeats = {}
+    for _, line in ipairs(solo.geometry(self.size).lines) do
+        local seen = {} -- [value] = the first unshaded cell with it
+        for _, i in ipairs(line) do
+            if self.marks[i] ~= SHADE then
+                local v = self.values[i]
+                local first = seen[v]
+                if first then
+                    repeats[first], repeats[i] = true, true
+                else
+                    seen[v] = i
+                end
+            end
+        end
+    end
+    return repeats
+end
+
 -- Rows and columns without an unshaded repeat, and how many there are.
 function SoloGame:clearLines()
     local clear = 0

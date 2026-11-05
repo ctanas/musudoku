@@ -98,6 +98,7 @@ storage.DEFAULT_SETTINGS = {
     theme = "cyanotype",
     mistakes = true,
     matching = true,
+    repeats = true, -- Solo: tint numbers that still repeat in their row or column
     autoclear = true,
     largeNotes = false,
     timer = true,

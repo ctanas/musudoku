@@ -9,7 +9,8 @@ local SHADE, DOT = SoloGame.SHADE, SoloGame.DOT
 
 -- The Solo play screen. boardscene.lua does the layout, cursor, pausing and
 -- celebrating; this adds shading, dots and the side panel. Shaded cells are
--- black and hide their number; holding Y shows them.
+-- black and hide their number; holding Y shows them. Numbers that still
+-- repeat in their row or column are tinted (Settings → Show repeats in Solo).
 local SoloPlay = Board.extend({})
 
 local RULES = {
@@ -17,6 +18,10 @@ local RULES = {
     "Shaded cells may touch at corners, but not at sides.",
     "The unshaded cells form one connected area.",
 }
+
+-- Numbers still repeating in their row or column are tinted this far toward
+-- the theme's error colour: a hint of what's left, not a mistake.
+local REPEAT_TINT = 0.45
 
 function SoloPlay.new(app)
     return Board.init(setmetatable({}, SoloPlay), app, "solo")
@@ -82,6 +87,7 @@ function SoloPlay:drawBoard()
 
     local size = math.floor(cs * 0.58)
     local peek = input.isDown("y")
+    local repeats = self.app.settings.repeats and g:repeats() or {}
     for i = 1, self.n * self.n do
         local x, y = self:cellPos(i)
         local cx, cy = x + cs / 2, y + cs / 2
@@ -92,7 +98,13 @@ function SoloPlay:drawBoard()
         end
         local shaded = g.marks[i] == SHADE
         if not shaded or peek then
-            theme.set(shaded and "shadeText" or "given", shaded and 0.75 or 1)
+            if shaded then
+                theme.set("shadeText", 0.75)
+            elseif repeats[i] then
+                theme.mix("given", "error", REPEAT_TINT)
+            else
+                theme.set("given")
+            end
             Board.drawText(tostring(g.values[i]), cx, cy, size, "regular", scale)
         end
         if g.marks[i] == DOT then

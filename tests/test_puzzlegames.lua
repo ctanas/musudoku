@@ -79,6 +79,27 @@ check("last shading solves it", res.solved and g.solved)
 local clear, total = g:clearLines()
 check("solved board has no repeats", clear == total and total == 10)
 
+-- repeats: 3x3, with the 1s in the top row, the 2s in the bottom row and
+-- the 2s in the right column repeating
+--   1 1 2
+--   2 3 1
+--   3 2 2
+local function repeatList(game)
+    local list = {}
+    for i, on in pairs(game:repeats()) do if on then list[#list + 1] = i end end
+    table.sort(list)
+    return table.concat(list, ",")
+end
+local small = SoloGame.new({ size = 3, values = { 1, 1, 2, 2, 3, 1, 3, 2, 2 }, solution = {} }, "easy")
+check("repeats in rows and columns", repeatList(small) == "1,2,3,8,9", repeatList(small))
+small:toggleShade(9)
+check("shading a repeat clears its row and column", repeatList(small) == "1,2", repeatList(small))
+small:toggleDot(1)
+check("a kept cell still repeats", repeatList(small) == "1,2", repeatList(small))
+small:toggleShade(2)
+check("none left", repeatList(small) == "", repeatList(small))
+check("solved board has no repeated numbers", repeatList(g) == "", repeatList(g))
+
 -- saving
 local g2 = SoloGame.deserialize(roundTrip(g:serialize()))
 check("solo loads", g2 ~= nil)

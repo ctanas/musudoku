@@ -7,8 +7,8 @@ MustardOS, and on other handheld systems through PortMaster. Designed for the An
 RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
 <img src="screenshots/title.png" alt="Title screen: a box for each of the four games on the left, with Sudoku chosen" width="49%"> <img src="screenshots/play.png" alt="Sudoku: a Hard puzzle with pencil notes" width="49%">
-<img src="screenshots/solo.png" alt="Solo: a 7×7 Medium puzzle part way through, black shaded cells with rings on the cells kept beside them" width="49%"> <img src="screenshots/pairlink.png" alt="Pairlink: an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%">
-<img src="screenshots/hoshi.png" alt="Hoshi: a 9×9 Medium puzzle part way through, with a bridge being drawn from an island" width="49%">
+<img src="screenshots/hint.png" alt="Sudoku: an explained hint, a naked pair, with the notes it rules out crossed off" width="49%"> <img src="screenshots/solo.png" alt="Solo: a 7×7 Medium puzzle part way through, black shaded cells with rings on the cells kept beside them, and the numbers that still repeat tinted" width="49%">
+<img src="screenshots/pairlink.png" alt="Pairlink: an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%"> <img src="screenshots/hoshi.png" alt="Hoshi: a 9×9 Medium puzzle part way through, with a bridge being drawn from an island" width="49%">
 
 | Game | The goal | Boards | Levels |
 |---|---|---|---|
@@ -269,7 +269,10 @@ solved.
 | Start / Menu | Pause menu |
 
 Shaded cells turn black and hide their number; hold Y to see them while it's held.
-The side panel counts the rows and columns that still have a repeat. With Highlight
+A number that still repeats in its row or column is tinted a soft red, and goes back
+to normal once its repeats are shaded (turn this off in **Settings → Show repeats in
+Solo**). The side panel counts the rows and columns that
+still have a repeat. With Highlight
 matching numbers on, the cursor's row and column light up, with its number's repeats
 picked out.
 
