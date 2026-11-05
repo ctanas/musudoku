@@ -1,7 +1,8 @@
--- Shared parts of the Solo and Pairlink play screens: the board's layout and
--- grid, the sliding cursor, the side panel's header, rules and button
--- legend, undo and redo, pausing, and the celebration when a puzzle is
--- solved. scenes/soloplay.lua and scenes/pairplay.lua build on it.
+-- Shared parts of the Solo, Pairlink and Hoshi play screens: the board's
+-- layout and grid, the sliding cursor, the side panel's header, rules and
+-- button legend, undo and redo, pausing, and the celebration when a puzzle is
+-- solved. scenes/soloplay.lua, scenes/pairplay.lua and scenes/hoshiplay.lua
+-- build on it.
 
 local ui = require("src.ui")
 local theme = require("src.theme")
@@ -15,6 +16,7 @@ local PX, PW = 488, 217       -- side panel
 Board.PX, Board.PW = PX, PW
 
 local FLASH_TIME = 0.7        -- one cell's flash
+Board.FLASH_TIME = FLASH_TIME
 local RING_TIME = 0.65        -- glow pulse around the board
 local LIFT = 0.16             -- how far numbers bounce during a flash
 local WIN_CARD_AT = 1.7       -- seconds after solving before the result card
@@ -172,8 +174,10 @@ function Board:update(dt)
     local k = 1 - math.exp(-dt * 28)
     self.vx = self.vx + (tx - self.vx) * k
     self.vy = self.vy + (ty - self.vy) * k
-    if math.abs(tx - self.vx) > self.cs * 3 or math.abs(ty - self.vy) > self.cs * 3 then
-        self.vx, self.vy = tx, ty -- wrapping around the edge: jump, don't fly across
+    -- wrapping around the edge: jump, don't fly across (unless the scene sets
+    -- slideFar, where the cursor never wraps and long moves are normal)
+    if not self.slideFar and (math.abs(tx - self.vx) > self.cs * 3 or math.abs(ty - self.vy) > self.cs * 3) then
+        self.vx, self.vy = tx, ty
     end
     if math.abs(tx - self.vx) < 0.25 and math.abs(ty - self.vy) < 0.25 then
         self.vx, self.vy = tx, ty -- settle exactly, so the scene can go idle

@@ -1,6 +1,7 @@
 -- Recent solves, newest first, for the Recent page in Statistics.
 -- Each entry: { at = os.time(), kind = "puzzle" | "daily" | "pack" | "solo"
--- | "pairlink", difficulty, pack (name), index, size (Solo and Pairlink),
+-- | "pairlink" | "hoshi", difficulty, pack (name), index, size (Solo,
+-- Pairlink and Hoshi),
 -- time (seconds), hints, mistakes }.
 -- Pure Lua, testable with luajit.
 
@@ -9,8 +10,8 @@ local history = {}
 history.MAX = 50
 
 local NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
-local KINDS = { puzzle = true, daily = true, pack = true, solo = true, pairlink = true }
-local GAMES = { solo = "Solo", pairlink = "Pairlink" }
+local KINDS = { puzzle = true, daily = true, pack = true, solo = true, pairlink = true, hoshi = true }
+local GAMES = { solo = "Solo", pairlink = "Pairlink", hoshi = "Hoshi" }
 local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
 
 -- Before this the clock was never set, so the date means nothing.
@@ -53,8 +54,8 @@ function history.label(e)
     return level
 end
 
--- "Perfect", "2 hints", "1 mistake, 1 hint". Nothing for Solo and Pairlink,
--- which have neither hints nor mistakes.
+-- "Perfect", "2 hints", "1 mistake, 1 hint". Nothing for Solo, Pairlink and
+-- Hoshi, which have neither hints nor mistakes.
 function history.note(e)
     if GAMES[e.kind] then return "" end
     if e.hints == 0 and e.mistakes == 0 then return "Perfect" end

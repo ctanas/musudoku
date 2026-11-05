@@ -9,8 +9,8 @@ Win.__index = Win
 
 local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
 
--- info.newBest: the solve set a best time. info.kind ("solo" or
--- "pairlink"): that game was solved; without it, Sudoku.
+-- info.newBest: the solve set a best time. info.kind ("solo", "pairlink" or
+-- "hoshi"): that game was solved; without it, Sudoku.
 function Win.new(app, info)
     return setmetatable({ app = app, t = 0, info = info or {} }, Win)
 end
@@ -107,7 +107,7 @@ function Win:draw()
         local best = stats.streak >= stats.bestStreak
         lines[#lines + 1] = { stats.streak .. " solved in a row" .. (best and ", your best" or ""), best }
     end
-    -- Sudoku's mistakes and hints (Solo and Pairlink have neither)
+    -- Sudoku's mistakes and hints (the other games have neither)
     if not kind then
         local parts = {}
         if self.app.settings.mistakes then

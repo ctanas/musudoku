@@ -6,8 +6,8 @@ local history = require("src.history")
 local daily = require("src.daily")
 local input = require("src.input")
 
--- Statistics, in pages: Sudoku's per-difficulty numbers and streaks, Solo's
--- and Pairlink's per size and level, and recent solves of every kind.
+-- Statistics, in pages: Sudoku's per-difficulty numbers and streaks, Solo's,
+-- Pairlink's and Hoshi's per size and level, and recent solves of every kind.
 -- L2 / R2 (see input.lua) or left / right switch pages.
 local Stats = {}
 Stats.__index = Stats
@@ -28,7 +28,7 @@ local COLUMNS = {
     { label = "Average", x = 656 },
 }
 
--- Solo and Pairlink pages: a row per size and level
+-- Solo, Pairlink and Hoshi pages: a row per size and level
 local GAME_LEVELS = { { "easy", "Easy" }, { "medium", "Medium" }, { "hard", "Hard" } }
 local GAME_COLUMNS = {
     { label = "Started", x = 256 },
@@ -38,9 +38,9 @@ local GAME_COLUMNS = {
     { label = "Streak", x = 574 },
     { label = "Longest", x = 656 },
 }
-local GAME_PAGES = { Solo = "solo", Pairlink = "pairlink" }
+local GAME_PAGES = { Solo = "solo", Pairlink = "pairlink", Hoshi = "hoshi" }
 
-local PAGES = { "Sudoku", "Streaks", "Solo", "Pairlink", "Recent" }
+local PAGES = { "Sudoku", "Streaks", "Solo", "Pairlink", "Hoshi", "Recent" }
 local RECENT_ROWS = 8
 
 -- `page` (optional): the page to open on, by name.
@@ -113,20 +113,28 @@ function Stats:action(a)
     end
 end
 
--- Page names on the title row, the current one underlined.
+-- Page names on the title row, ending at the right margin, the current one
+-- underlined. They shrink, if they must, to fit beside the title.
 function Stats:drawTabs()
+    local function weight(k) return k == self.page and "bold" or "regular" end
+    local size, gap = 20, 24
+    local width = gap * (#PAGES - 1)
+    for k, name in ipairs(PAGES) do width = width + ui.width(name, size, weight(k)) end
+    local room = 656 - (64 + ui.width("Statistics", 36, "bold") + 28)
+    local scale = math.min(1, room / width)
+    size, gap = size * scale, gap * scale
     local x = 656
     for k = #PAGES, 1, -1 do
         local name, current = PAGES[k], k == self.page
-        local w = ui.width(name, 20, current and "bold" or "regular")
+        local w = ui.width(name, size, weight(k))
         x = x - w
         theme.set(current and "text" or "muted")
-        ui.centered(name, x, 64, 20, current and "bold" or "regular", "left")
+        ui.centered(name, x, 64, size, weight(k), "left")
         if current then
             theme.set("accent")
             ui.rect("fill", x, 78, w, 3, 1.5)
         end
-        x = x - 24
+        x = x - gap
     end
 end
 
@@ -177,7 +185,7 @@ function Stats:drawPuzzles()
     ui.text(summary, 64, 392, 16, "regular", "left", 592)
 end
 
--- Solo or Pairlink: a row per size and level, grouped by size.
+-- Solo, Pairlink or Hoshi: a row per size and level, grouped by size.
 function Stats:drawGame(kind)
     local stats, sizes = self.app.puzzleStats[kind], self.app.PUZZLES[kind].sizes
     local y = 126
@@ -274,7 +282,7 @@ function Stats:drawRecent()
     if #list == 0 then
         theme.set("muted")
         ui.text("Solved puzzles show up here, newest first, from every game: Sudoku (generated, daily and "
-            .. "pack puzzles), Solo and Pairlink.", 64, y, 18, "regular", "left", 592)
+            .. "pack puzzles), Solo, Pairlink and Hoshi.", 64, y, 18, "regular", "left", 592)
         return
     end
     theme.set("muted")

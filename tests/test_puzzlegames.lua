@@ -1,11 +1,13 @@
 -- Run from the repository root:  luajit tests/test_puzzlegames.lua
--- Solo and Pairlink puzzles in progress: marks and lines, undo and redo,
--- solving, and saving.
+-- Solo, Pairlink and Hoshi puzzles in progress: marks, lines and bridges,
+-- undo and redo, solving, and saving.
 package.path = "./game/?.lua;" .. package.path
 local solo = require("src.solo")
 local pairlink = require("src.pairlink")
 local SoloGame = require("src.sologame")
 local PairGame = require("src.pairgame")
+local hoshi = require("src.hoshi")
+local HoshiGame = require("src.hoshigame")
 
 local passed, failed = 0, 0
 local function check(name, ok, detail)
@@ -163,6 +165,88 @@ for k, line in ipairs(genL.lines) do
     res = pg:finish()
 end
 check("generated pairlink solves with its lines", res.solved)
+
+-- Hoshi -----------------------------------------------------------------------
+-- 3x3 square: a double bridge along the top, singles down both sides.
+
+local square = {
+    size = 3,
+    clues = { 3, 0, 3, 0, 0, 0, 1, 0, 1 },
+    bridges = { { 1, 3, 2 }, { 1, 7, 1 }, { 3, 9, 1 } },
+}
+local h = HoshiGame.new(square, "easy")
+check("hoshi starts unsolved", not h.solved and h:doneCount() == 0 and h:islandCount() == 4)
+check("hoshi cursor on an island", h:isIsland(h.cursor))
+check("no island that way", h:cycle(1, "up").blocked == "none")
+res = h:cycle(1, "right")
+check("a bridge", res.changed and res.added and res.count == 1 and h:bridgesAt(1) == 1 and h:bridgesAt(3) == 1)
+res = h:cycle(1, "right")
+check("a second bridge", res.count == 2 and h:bridgesAt(3) == 2)
+res = h:cycle(3, "left")
+check("a third press takes them away", res.changed and not res.added and res.count == 0 and h:bridgesAt(1) == 0)
+local bottom = h:linkToward(7, "right")
+h:cycle(7, "right")
+check("between two 1s, one bridge", h.counts[bottom] == 1)
+h:cycle(9, "left")
+check("then none", h.counts[bottom] == 0)
+check("undo", h:undo() == 9 and h.counts[bottom] == 1)
+check("redo", h:redo() == 9 and h.counts[bottom] == 0)
+
+h:cycle(7, "up")
+check("an island with its number is done", h:state(7) == "done" and h:doneCount() == 1)
+h:cycle(7, "right")
+check("one with more is over", h:state(7) == "over" and h:state(9) == "done")
+h:undo()
+h:cycle(1, "right")
+h:cycle(1, "right")
+check("both ends of a double", h:state(1) == "done" and h:state(3) == "short")
+res = h:clearIsland(1)
+check("clearing an island", res.changed and #res.links == 2 and h:bridgesAt(1) == 0 and h:bridgesAt(3) == 0)
+check("clearing nothing", not h:clearIsland(1).changed)
+check("undoing a clear", h:undo() == 1 and h:bridgesAt(1) == 3)
+check("not solved yet", not h.solved and h:nextUnfinished(1, 1) == 3)
+res = h:cycle(3, "down")
+check("the last bridge solves it", res.solved and h.solved and h:nextUnfinished(1, 1) == nil)
+check("next island in line", h:nextIsland(1, "right") == 3 and h:nextIsland(1, "down") == 7)
+check("no island that way to move to", h:nextIsland(1, "left") == nil and h:nextIsland(9, "down") == nil)
+
+local h2 = HoshiGame.deserialize(roundTrip(h:serialize()))
+check("hoshi loads", h2 ~= nil)
+check("hoshi loads bridges and solved", h2 and h2.solved and h2:bridgesAt(1) == 3 and h2:doneCount() == 4)
+check("hoshi loads history", h2 and #h2.undoStack == #h.undoStack and h2:undo() ~= nil)
+local badAnswer = h:serialize()
+badAnswer.solution = { { 1, 3, 1 } }
+check("hoshi rejects a save whose answer isn't one", HoshiGame.deserialize(roundTrip(badAnswer)) == nil)
+local badBridges = h:serialize()
+badBridges.bridges = { { 1, 9, 1 } }
+local h3 = HoshiGame.deserialize(roundTrip(badBridges))
+check("bridges that aren't links are dropped", h3 and h3:bridgesAt(1) == 0 and #h3.undoStack == 0 and not h3.solved)
+check("hoshi rejects a broken save", HoshiGame.deserialize({ version = 1, size = 3, clues = { 1 } }) == nil)
+h:restart()
+check("hoshi restart", not h.solved and h:bridgesAt(1) == 0 and #h.undoStack == 0 and h.elapsed == 0)
+
+-- 5x5: a row and a column cross in the middle; the answer uses the row.
+local crossing = {
+    size = 5,
+    clues = { 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2 },
+    bridges = { { 11, 15, 1 }, { 3, 5, 1 }, { 5, 15, 1 }, { 15, 25, 1 }, { 23, 25, 1 } },
+}
+local hc = HoshiGame.new(crossing, "easy")
+hc:cycle(11, "right")
+res = hc:cycle(3, "down")
+check("a bridge can't cross another", res.blocked == "cross" and res.link == hc:linkToward(11, "right"))
+hc:undo()
+check("once it's gone, it can", hc:cycle(3, "down").changed)
+
+-- a generated puzzle solves with its own bridges, built the way a player would
+local genH = hoshi.generate(9, "hard", rng)
+local hg = HoshiGame.new(genH, "hard")
+for _, b in ipairs(genH.bridges) do
+    local l = hoshi.linkBetween(hg.P, b[1], b[2])
+    local link = hg.P.links[l]
+    for _ = 1, b[3] do res = hg:cycle(link.a, link.horizontal and "right" or "down") end
+end
+check("generated hoshi solves with its bridges", res.solved and hg:doneCount() == hg:islandCount())
 
 print(string.format("\n%d passed, %d failed", passed, failed))
 os.exit(failed == 0 and 0 or 1)

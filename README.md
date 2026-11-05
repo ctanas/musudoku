@@ -1,18 +1,21 @@
 # muSudoku
 
-Three logic puzzles for handhelds, built with LÖVE 11.5: **Sudoku**, **Solo** and
-**Pairlink**. Switch between them with L1 / R1 on the title screen. It runs on
+Four logic puzzles for handhelds, built with LÖVE 11.5: **Sudoku**, **Solo**,
+**Pairlink** and **Hoshi**. The title screen shows a box for each; pick one with left /
+right or L1 / R1. It runs on
 MustardOS, and on other handheld systems through PortMaster. Designed for the Anbernic
 RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
-<img src="screenshots/title.png" alt="Title screen, with the Sudoku, Solo and Pairlink tabs" width="49%"> <img src="screenshots/play.png" alt="Sudoku: a Hard puzzle with pencil notes" width="49%">
+<img src="screenshots/title.png" alt="Title screen: a box for each of the four games on the left, with Sudoku chosen" width="49%"> <img src="screenshots/play.png" alt="Sudoku: a Hard puzzle with pencil notes" width="49%">
 <img src="screenshots/solo.png" alt="Solo: a 7×7 Medium puzzle part way through, black shaded cells with rings on the cells kept beside them" width="49%"> <img src="screenshots/pairlink.png" alt="Pairlink: an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%">
+<img src="screenshots/hoshi.png" alt="Hoshi: a 9×9 Medium puzzle part way through, with bridges being built from an island" width="49%">
 
 | Game | The goal | Boards | Levels |
 |---|---|---|---|
 | [Sudoku](#sudoku) | Fill the grid so every row, column and 3×3 box has the numbers 1 to 9 | 9×9 | Easy, Medium, Hard, Expert, Master, plus a daily puzzle and puzzle packs |
 | [Solo](#solo) | Shade cells until no number repeats in a row or column | 5×5, 7×7, 9×9 | Easy, Medium, Hard |
 | [Pairlink](#pairlink) | Join each pair of matching numbers with a line, filling the board | 7×7, 8×8, 9×9 | Easy, Medium, Hard |
+| [Hoshi](#hoshi) | Join numbered islands with bridges, so each has its number of them and all connect | 7×7, 9×9 | Easy, Medium, Hard |
 
 ## In every game
 
@@ -23,8 +26,8 @@ RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   game's
 - Undo and redo, and a pause menu to restart, start a new puzzle or change settings
 - Statistics for each game: solved, best and average times, and streaks (Sudoku per
-  difficulty, Solo and Pairlink per size and level). The Recent page lists the last 50
-  solves across all three games
+  difficulty, the others per size and level). The Recent page lists the last 50 solves
+  across all four games
 - Celebrations: solving a puzzle sends a wave across the board, with confetti
 - Nine themes. Light: Paper, Sakura, Frankfurt (Lufthansa blue and yellow) and
   Solarized Light. Dark: Cyanotype (default), Solarized Dark, Nord, Gruvbox, and
@@ -62,7 +65,7 @@ runtime that PortMaster already includes.
 
 | Button | What it does |
 |---|---|
-| L1 / R1 (or left / right), on the title screen | Switch between Sudoku, Solo and Pairlink |
+| L1 / R1 (or left / right), on the title screen | Pick a game: Sudoku, Solo, Pairlink or Hoshi |
 | Start / Menu | Pause menu |
 | Menu + Start | Save and quit |
 
@@ -313,6 +316,46 @@ number), in three levels:
   pair, and cells side by side that no pair can reach both of aren't linked
 - **Hard**: needs trying a line's next step and finding that it breaks a rule
 
+## Hoshi
+
+<img src="screenshots/hoshi-paper.png" alt="Hoshi, a 7×7 Hard puzzle in the Paper theme, with the finished islands tinted" width="49%">
+
+Hoshi is a Hashiwokakero-style puzzle. The board is water with numbered islands. Join
+the islands with bridges:
+
+- bridges run straight along a row or column, between two islands with only water
+  between them
+- two islands have at most two bridges between them
+- an island's number is how many bridges end at it
+- bridges never cross, and together they connect every island
+
+| Button | Hoshi |
+|---|---|
+| D-pad | Move to the next island that way (the next one in line, or else the nearest one that way); while building, add a bridge that way |
+| A | Start building from the island; A again stops. Or hold A, press directions, and let go to stop |
+| B | Take away the island's bridges (or stop building) |
+| L1 / R1 | Jump to the previous / next island that doesn't have its number of bridges |
+| L2 / R2 | Undo / redo |
+| Start / Menu | Pause menu |
+
+While building, each press of a direction adds a bridge to the island that way: one,
+then two, then none again (one, then none, next to a 1). Faint lines show where a bridge
+can still go. A bridge that would cross another isn't built, and the one in its way
+glows red. An island with its number of bridges is tinted in the bridges' colour, and
+one with too many turns red. The cursor's row and column are lit, so islands in line
+with it stand out, and the side panel counts the islands done.
+
+**Sizes and levels.** 7×7 and 9×9 (about 12 and 20 islands), each in three levels:
+
+- **Easy**: counting: an island needs its number of bridges, so if its other links
+  can't make up the rest, a link must have some, and if they already have most of them,
+  a link can't have more. A bridge rules out the links it would cross
+- **Medium**: adds connecting: a bridge that would close off a group of islands that
+  can't take any more bridges is ruled out (a 1 to a 1, or a double bridge from a 2 to
+  a 2, while other islands are waiting), and a group with only one way out must take it
+- **Hard**: needs trying a link's lowest or highest number of bridges and finding that
+  it breaks a rule
+
 ## How puzzles are made
 
 Every puzzle, in every game, has only one solution, so it can always be worked out,
@@ -352,9 +395,10 @@ date that gives the same numbers on every device (`src/daily.lua`).
 Pack puzzles weren't made by this generator, so the game checks each one for a single
 solution when you start it (see "Puzzle packs").
 
-### Solo and Pairlink
+### Solo, Pairlink and Hoshi
 
-Solo and Pairlink (`src/solo.lua`, `src/pairlink.lua`) are built the other way round:
+Solo, Pairlink and Hoshi (`src/solo.lua`, `src/pairlink.lua`, `src/hoshi.lua`) are built
+the other way round:
 from a solution. Each has a solver that only uses the reasoning listed for its levels,
 and every step it takes is sound, so when it solves a puzzle completely, that solution
 is the only one. A puzzle is only offered once that solver has finished it, so every
@@ -370,14 +414,22 @@ puzzle has a solution, and just one.
   line ends around, keeping each change only while the solver can still finish the
   puzzle at the chosen level. A puzzle still left with more than 9 pairs gets a few
   more rounds, and is dropped if that isn't enough.
+- **Hoshi** builds the answer first: one island, then island after island, each placed
+  across the water from one already there and joined to it by one or two bridges, never
+  over a bridge or right beside another island. Extra bridges then join some islands
+  that already see each other, which makes loops. Each island's number is its count of
+  bridges, so the answer always fits. Double bridges give a lot away, so Easy puzzles
+  get many and the others few. About half the answers come out Easy and over half
+  Medium, but only a few in a hundred need Hard's trying, so Hard goes through more
+  answers before one fits (up to 400; on a PC that's still well under a second).
 
 ### Tests
 
 `./build.sh test` generates puzzles of every game, at every level and size, and checks
 that each has exactly one solution. Sudoku puzzles are made with both generators, using
-the other solver to confirm Dancing Links puzzles. Solo and Pairlink solutions are
-checked against the rules, and the smaller boards (Solo 5×5 and 7×7, Pairlink 7×7) are
-also counted by brute force, independently of the solver.
+the other solver to confirm Dancing Links puzzles. Solo, Pairlink and Hoshi solutions
+are checked against the rules, and the smaller boards (Solo 5×5 and 7×7, Pairlink 7×7)
+and every Hoshi board are also counted by brute force, independently of the solver.
 
 ## Development
 
@@ -387,7 +439,7 @@ for building.
 ```sh
 ./build.sh run            # play on a PC (720x480 window)
 ./build.sh run 640x480    # try another resolution
-./build.sh test           # engine, puzzle pack, hint, Solo and Pairlink tests (luajit)
+./build.sh test           # engine, puzzle pack, hint, Solo, Pairlink and Hoshi tests (luajit)
 ./build.sh love           # build/muSudoku.love
 ./build.sh                # build/muSudoku_vX.Y.muxapp
 ./build.sh portmaster     # build/portmaster/musudoku/ and build/musudoku.zip
@@ -433,9 +485,10 @@ are off. Turning sound on later loads them then.
 
 `MUSUDOKU_FXSHOTS=1 love game` captures the completion effects mid-animation.
 
-`MUSUDOKU_GAMESHOTS=1 love game` plays through the Solo and Pairlink screens (title
-tabs, new puzzle, play, a link effect, pause, wins and statistics, in several themes)
-and saves screenshots named `g*.png`.
+`MUSUDOKU_GAMESHOTS=1 love game` plays through the Solo, Pairlink and Hoshi screens
+(the title's game boxes, new puzzle, play, a link effect, building bridges, pause, wins
+and statistics, in several themes) and saves screenshots named `g*.png`.
+`MUSUDOKU_GAMESHOTS=hoshi` takes only Hoshi's.
 
 `MUSUDOKU_IDLETEST=1 love game` measures it. On a PC, a puzzle left alone for 10 seconds
 drew 10 frames (one per timer tick) instead of about 600, and none with the timer
@@ -452,7 +505,7 @@ portmaster/          PortMaster launcher, port.json, gameinfo.xml, README and
 screenshots/         Images used in this README (not packaged)
 build.sh             Build, test and run commands
 packs/               Starter pack (copied into the muxapp)
-tests/               Engine, pack-format, Solo and Pairlink tests (plain luajit,
+tests/               Engine, pack-format, Solo, Pairlink and Hoshi tests (plain luajit,
                      no LÖVE needed)
 game/                The LÖVE game (becomes .game/ in the muxapp)
   main.lua           Scene stack, saving, resolution handling
@@ -469,7 +522,9 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
   src/sologame.lua   Solo puzzle in progress: marks, undo/redo, saving
   src/pairlink.lua   Pairlink solver, generator and grader
   src/pairgame.lua   Pairlink puzzle in progress: lines, undo/redo, saving
-  src/boardscene.lua What the Solo and Pairlink play screens share
+  src/hoshi.lua      Hoshi solver, generator and grader
+  src/hoshigame.lua  Hoshi puzzle in progress: bridges, undo/redo, saving
+  src/boardscene.lua What the Solo, Pairlink and Hoshi play screens share
   src/ui.lua         720x480 layout scaling, text and button glyphs
   src/input.lua      Gamepad and keyboard mapping, hold-to-repeat
   src/theme.lua      Color themes, chalk dust texture, wooden frame, Solo's
@@ -477,10 +532,11 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
   src/sound.lua      Synthesized sound effects
   src/scenes/        Title, difficulty, generating, play, pause, win,
                      settings, statistics, confirm, packs, pack and about
-                     screens, and for Solo and Pairlink: choose (size and
-                     level), soloplay and pairplay
+                     screens, and for Solo, Pairlink and Hoshi: choose (size
+                     and level), soloplay, pairplay and hoshiplay
   dev/autoshot.lua   Screenshot harness (left out of builds)
-  dev/gameshots.lua  Screenshot harness for Solo and Pairlink (left out of builds)
+  dev/gameshots.lua  Screenshot harness for Solo, Pairlink and Hoshi (left out of
+                     builds)
   dev/idletest.lua   Measures frames drawn while idle (left out of builds)
   dev/fxshots.lua    Screenshots of the completion effects (left out of builds)
   dev/hintshots.lua  Screenshots of explained hints (left out of builds)

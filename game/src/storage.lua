@@ -108,7 +108,7 @@ storage.DEFAULT_SETTINGS = {
     input = "cell", -- "cell" (pick a cell, then its number) | "number" (the other way round)
     pad = "panel", -- cell first: "panel" (the side panel's number tiles) | "popup" (a 3x3 pad by the cell)
     shoulders = "move", -- "move" (L1 / R1 move, L2 / R2 undo) | "undo" (swapped, the layout before 1.3.3)
-    game = "sudoku", -- the title screen's game: "sudoku" | "solo" | "pairlink"
+    game = "sudoku", -- the title screen's game: "sudoku" | "solo" | "pairlink" | "hoshi"
 }
 
 local CHOICES = {
@@ -118,7 +118,7 @@ local CHOICES = {
     input = { cell = true, number = true },
     pad = { panel = true, popup = true },
     shoulders = { move = true, undo = true },
-    game = { sudoku = true, solo = true, pairlink = true },
+    game = { sudoku = true, solo = true, pairlink = true, hoshi = true },
 }
 for _, key in ipairs(theme.ORDER) do CHOICES.theme[key] = true end
 
@@ -221,7 +221,7 @@ function storage.hasGame()
     return love.filesystem.getInfo(GAME_FILE) ~= nil
 end
 
--- Solo and Pairlink ------------------------------------------------------------
+-- Solo, Pairlink and Hoshi -----------------------------------------------------
 -- Each has its own puzzle in progress (solo-game.lua) and statistics
 -- (solo-stats.lua), with a records entry per size and level ("7-easy").
 

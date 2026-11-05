@@ -5,7 +5,10 @@ local sound = require("src.sound")
 local Pause = { overlay = true }
 Pause.__index = Pause
 
--- `kind` ("solo" or "pairlink") pauses that game; without it, Sudoku.
+-- What restarting a puzzle clears, per game
+local WORK = { solo = "Your shading, dots", pairlink = "Your lines", hoshi = "Your bridges" }
+
+-- `kind` ("solo", "pairlink" or "hoshi") pauses that game; without it, Sudoku.
 function Pause.new(app, kind)
     local self = setmetatable({ app = app, t = 0, sel = 1, kind = kind }, Pause)
     if kind then
@@ -14,7 +17,7 @@ function Pause.new(app, kind)
             { label = "Restart puzzle", run = function()
                 app.push("confirm", {
                     title = "Restart this puzzle?",
-                    body = (kind == "solo" and "Your shading, dots" or "Your lines") .. " and time will be cleared.",
+                    body = (WORK[kind] or "Your work") .. " and time will be cleared.",
                     yes = "Restart",
                     onYes = function()
                         app.puzzles[kind]:restart()

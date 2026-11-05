@@ -14,6 +14,7 @@ local history = require("src.history")
 local records = require("src.records")
 local SoloGame = require("src.sologame")
 local PairGame = require("src.pairgame")
+local HoshiGame = require("src.hoshigame")
 
 local VERSION = "1.4"
 
@@ -33,6 +34,7 @@ local SCENES = {
     choose = require("src.scenes.choose"),
     soloplay = require("src.scenes.soloplay"),
     pairplay = require("src.scenes.pairplay"),
+    hoshiplay = require("src.scenes.hoshiplay"),
 }
 
 local app = {
@@ -46,7 +48,7 @@ local app = {
     redrawRequested = true,
     activeUntil = 0,
     framesDrawn = 0,
-    puzzles = {},       -- Solo and Pairlink puzzles in progress, by kind
+    puzzles = {},       -- Solo, Pairlink and Hoshi puzzles in progress, by kind
     puzzleStats = {},   -- their statistics, by kind, then size and level
     puzzleDirty = {},   -- [kind] = true when its puzzle needs saving
     lastChoice = {},    -- [kind] = { size, difficulty } last started
@@ -58,6 +60,7 @@ _G.app = app
 app.PUZZLES = {
     solo = { name = "Solo", Game = SoloGame, engine = "src.solo", scene = "soloplay", sizes = { 5, 7, 9 } },
     pairlink = { name = "Pairlink", Game = PairGame, engine = "src.pairlink", scene = "pairplay", sizes = { 7, 8, 9 } },
+    hoshi = { name = "Hoshi", Game = HoshiGame, engine = "src.hoshi", scene = "hoshiplay", sizes = { 7, 9 } },
 }
 
 -- Scene stack ---------------------------------------------------------------
@@ -306,7 +309,7 @@ function app.recordSolve()
     return best
 end
 
--- Solo and Pairlink -------------------------------------------------------------
+-- Solo, Pairlink and Hoshi ------------------------------------------------------
 
 function app.hasPuzzle(kind)
     local g = app.puzzles[kind]
@@ -332,8 +335,13 @@ function app.savePuzzleStats(kind)
     storage.savePuzzleStats(kind, app.puzzleStats[kind])
 end
 
+-- The statistics entry for a puzzle's size and level. A saved puzzle can be
+-- of a size this version no longer offers; it gets an entry of its own
+-- (kept, but not shown) rather than none.
 local function puzzleEntry(kind, g)
-    return app.puzzleStats[kind][storage.puzzleStatsKey(g.size, g.difficulty)]
+    local stats, key = app.puzzleStats[kind], storage.puzzleStatsKey(g.size, g.difficulty)
+    stats[key] = stats[key] or records.empty()
+    return stats[key]
 end
 
 function app.newPuzzleOf(kind, size, difficulty)

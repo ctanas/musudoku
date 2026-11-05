@@ -1,5 +1,5 @@
--- Development only: plays through the Solo and Pairlink screens and saves
--- screenshots to the LÖVE save directory. Run with:
+-- Development only: plays through the Solo, Pairlink and Hoshi screens and
+-- saves screenshots to the LÖVE save directory. Run with:
 --   MUSUDOKU_GAMESHOTS=1 love game
 -- Screenshots land in ~/.local/share/love/musudoku/shots/ on Linux.
 --
@@ -9,6 +9,7 @@
 
 local input = require("src.input")
 local SoloGame = require("src.sologame")
+local hoshi = require("src.hoshi")
 
 local M = {}
 
@@ -28,6 +29,39 @@ function M.start(app)
     end
     local function solo() return app.puzzles.solo end
     local function pairs_() return app.puzzles.pairlink end
+    local function islands() return app.puzzles.hoshi end
+
+    -- Hoshi: build the answer's bridges the way a player would (A, a
+    -- direction per bridge, A), the first `count` of them (all if nil).
+    local function hoshiBuild(count, from)
+        local g = islands()
+        for k, b in ipairs(g.solution) do
+            if count and k > count then break end
+            if k >= (from or 1) then
+                local link = g.P.links[hoshi.linkBetween(g.P, b[1], b[2])]
+                g.cursor = link.a
+                press("a")
+                for _ = 1, b[3] do press(link.horizontal and "right" or "down") end
+                press("a")
+            end
+        end
+    end
+
+    -- Two links that cross, both without bridges: a bridge on the first
+    -- blocks the second. Returns { first, second }, each { a = island,
+    -- dir }, or nil.
+    local function crossingTry()
+        local g = islands()
+        local function from(l)
+            local link = g.P.links[l]
+            return { a = link.a, dir = link.horizontal and "right" or "down" }
+        end
+        for l = 1, #g.P.links do
+            for _, m in ipairs(g.P.crosses[l]) do
+                if g.counts[l] == 0 and g.counts[m] == 0 then return { first = from(m), second = from(l) } end
+            end
+        end
+    end
 
     -- Solo: shade the solution's cells, all but the last one, and keep a few.
     local function soloAlmost()
@@ -169,6 +203,38 @@ function M.start(app)
             return 2.6
         end,
         function() shot("r7_title_pairlink") end,
+        function()
+            app.newPuzzleOf("hoshi", 9, "medium")
+            return 1.2
+        end,
+        function()
+            local g = islands()
+            hoshiBuild(math.floor(#g.solution * 0.6))
+            g.cursor = g:nextUnfinished(g.cursor, 1) or g.cursor
+            press("a")
+            g.elapsed = 274
+            return 0.6
+        end,
+        function() shot("r8_hoshi") end,
+        function()
+            press("a")
+            theme("paper")
+            app.newPuzzleOf("hoshi", 7, "hard")
+            return 1.2
+        end,
+        function()
+            hoshiBuild(5)
+            islands().elapsed = 149
+            return 0.6
+        end,
+        function() shot("r9_hoshi_paper") end,
+        function()
+            theme("cyanotype")
+            app.settings.game = "hoshi"
+            app.setScene("title")
+            return 2.8
+        end,
+        function() shot("r10_title_hoshi") end,
     }
 
     local steps = {
@@ -353,9 +419,150 @@ function M.start(app)
         function() shot("31_stats_reset_confirm") end,
         function() press("a") return 0.4 end,
         function() shot("32_stats_after_reset") end,
+        function() press("b") return 0.3 end,
+
     }
 
-    if os.getenv("MUSUDOKU_GAMESHOTS") == "readme" then steps = readme end
+    -- Hoshi, also on its own with MUSUDOKU_GAMESHOTS=hoshi
+    local hoshiSteps = {
+        function() return 0.3 end,
+        function()
+            theme("cyanotype")
+            app.settings.game = "hoshi"
+            app.setScene("title")
+            return 2.8
+        end,
+        function() shot("40_title_hoshi") end,
+        function()
+            app.settings.game = "sudoku"
+            app.setScene("title")
+            return 2.8
+        end,
+        function() shot("40b_title_sudoku") end,
+        function() press("right", "right", "right") return 0.4 end,
+        function() press("a") return 0.4 end, -- New puzzle (nothing to continue)
+        function() shot("41_choose_hoshi") end,
+        function() press("left", "down", "a") return 0.1 end, -- 7x7 Medium
+        function() shot("42_generating_hoshi") return 1.0 end,
+        function() shot("43_hoshi_start") end,
+        function() hoshiBuild(4) return 0.5 end,
+        function() shot("44_hoshi_partway") end,
+        function()
+            local g = islands()
+            g.cursor = g:nextUnfinished(g.cursor, 1) or g.cursor
+            press("a")
+            return 0.4
+        end,
+        function() shot("45_hoshi_building") end,
+        function()
+            press("a")
+            return 0.3
+        end,
+        function()
+            -- one bridge too many on a finished island
+            local g = islands()
+            for l, link in ipairs(g.P.links) do
+                if g.counts[l] > 0 and g.counts[l] < link.max and g:state(link.a) == "done" then
+                    g.cursor = link.a
+                    press("a", link.horizontal and "right" or "down", "a")
+                    break
+                end
+            end
+            return 0.4
+        end,
+        function() shot("47_hoshi_over") end,
+        function() press("l2") return 0.3 end,
+        function() press("start") return 0.4 end,
+        function() shot("48_hoshi_pause") end,
+        function() press("b") return 0.3 end,
+        function()
+            local g = islands()
+            g:restart()
+            g.elapsed = 96
+            app.puzzleStats.hoshi["7-medium"].streak = 2
+            hoshiBuild(#g.solution - 1)
+            return 0.6
+        end,
+        function() shot("49_hoshi_almost") end,
+        function()
+            local g = islands()
+            hoshiBuild(nil, #g.solution)
+            return 0.45
+        end,
+        function() shot("50_hoshi_win_wave") return 1.6 end,
+        function() shot("51_hoshi_win") end,
+        function() press("b") return 0.4 end,
+        function() app.push("stats", "Hoshi") return 0.4 end,
+        function() shot("52_stats_hoshi") end,
+        function() press("b") return 0.3 end,
+        function()
+            theme("chalkboard")
+            app.newPuzzleOf("hoshi", 9, "hard")
+            return 1.5
+        end,
+        function()
+            hoshiBuild(8)
+            return 0.6
+        end,
+        function() shot("53_hoshi_chalkboard_9") end,
+        function()
+            theme("solarizedLight")
+            app.newPuzzleOf("hoshi", 7, "easy")
+            return 1.5
+        end,
+        function()
+            hoshiBuild(3)
+            return 0.6
+        end,
+        function() shot("54_hoshi_solarized_7") end,
+        function()
+            theme("frankfurt")
+            app.settings.game = "hoshi"
+            app.setScene("title")
+            return 2.8
+        end,
+        function() shot("55_title_frankfurt") end,
+        function()
+            theme("chalkboard")
+            app.setScene("title")
+            return 2.8
+        end,
+        function() shot("56_title_chalkboard") end,
+        -- a bridge in the way: a puzzle with links that cross, one built,
+        -- then the other tried (set up directly, so it skips the statistics)
+        function()
+            theme("cyanotype")
+            local HoshiGame = require("src.hoshigame")
+            local gen
+            repeat
+                gen = hoshi.generate(9, "medium")
+                local P = hoshi.analyze(9, gen.clues)
+                local any = false
+                for l = 1, #P.links do if #P.crosses[l] > 0 then any = true end end
+            until any
+            app.puzzles.hoshi = HoshiGame.new(gen, "medium")
+            app.setScene("hoshiplay")
+            return 0.5
+        end,
+        function()
+            local g = islands()
+            local try = crossingTry()
+            g.cursor = try.first.a
+            press("a", try.first.dir, "a")
+            g.cursor = try.second.a
+            press("a", try.second.dir)
+            return 0.1
+        end,
+        function() shot("57_hoshi_crossing_blocked") end,
+    }
+
+    if os.getenv("MUSUDOKU_GAMESHOTS") == "readme" then
+        steps = readme
+    elseif os.getenv("MUSUDOKU_GAMESHOTS") == "hoshi" then
+        steps = hoshiSteps
+    else
+        for _, step in ipairs(hoshiSteps) do steps[#steps + 1] = step end
+    end
 
     local origUpdate = love.update
     local t, idx, waitUntil = 0, 1, 0

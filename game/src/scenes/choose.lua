@@ -4,7 +4,7 @@ local sound = require("src.sound")
 local input = require("src.input")
 local storage = require("src.storage")
 
--- New puzzle for Solo or Pairlink: the board size (left / right, or
+-- New puzzle for Solo, Pairlink or Hoshi: the board size (left / right, or
 -- L1 / R1) and the level (up / down).
 local Choose = {}
 Choose.__index = Choose
@@ -19,6 +19,11 @@ local LEVELS = {
         { key = "easy", name = "Easy", about = "Lines with only one way to go." },
         { key = "medium", name = "Medium", about = "Also work out which pair can reach each cell." },
         { key = "hard", name = "Hard", about = "Needs trying a line's next step and seeing it fail." },
+    },
+    hoshi = {
+        { key = "easy", name = "Easy", about = "Count each island's bridges: some can only go one way." },
+        { key = "medium", name = "Medium", about = "Also keep groups of islands from closing themselves off." },
+        { key = "hard", name = "Hard", about = "Needs trying a bridge and seeing it break a rule." },
     },
 }
 

@@ -13,7 +13,7 @@ local MIN_SHOWN = 0.45     -- keep the screen up briefly so it doesn't flicker
 
 -- opts.daily: today's puzzle (from daily.today()), built from the date with the
 -- Classic generator so it's the same everywhere.
--- opts.kind ("solo" or "pairlink") and opts.size: a puzzle of that game.
+-- opts.kind ("solo", "pairlink" or "hoshi") and opts.size: a puzzle of that game.
 function Generating.new(app, difficulty, opts)
     local self = setmetatable({ app = app, difficulty = difficulty, t = 0, opts = opts or {} }, Generating)
     local random, method
