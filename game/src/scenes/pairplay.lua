@@ -10,6 +10,7 @@ local Board = require("src.boardscene")
 -- A on a number (or a line) starts drawing, and the D-pad then draws the
 -- line cell by cell; stepping back along it takes steps back. Reaching the
 -- pair's other number links them and stops drawing, and so do A and B.
+-- Breaking a linked line (B, or A on it to draw it again) snaps it.
 local PairPlay = Board.extend({})
 
 local RULES = {
@@ -24,18 +25,73 @@ local DIRS = { up = { -1, 0 }, down = { 1, 0 }, left = { 0, -1 }, right = { 0, 1
 -- the far number pops; each number's ring lasts RING.
 local STEP, POP, RING = 0.035, 0.25, 0.45
 
+-- The snap, when a linked line is broken: sparks fly from the break for
+-- SPARK_TIME, and each loose piece recoils into its number in RECOIL plus
+-- RECOIL_CELL per cell, the number flinching for LAND when it arrives.
+local SPARKS, SPARK_TIME = 7, 0.34
+local RECOIL, RECOIL_CELL, LAND = 0.22, 0.012, 0.2
+
 function PairPlay.new(app)
     local self = Board.init(setmetatable({}, PairPlay), app, "pairlink")
     self.links = {} -- [pair] = when its link effect started
+    self.snaps = {} -- lines breaking: { pair, t, at = cell, pieces, sparks }
     return self
+end
+
+local function copy(list)
+    local out = {}
+    for n, x in ipairs(list) do out[n] = x end
+    return out
+end
+
+local function indexOf(list, x)
+    for n, y in ipairs(list) do
+        if y == x then return n end
+    end
+end
+
+-- line[from] to line[to], in that order.
+local function span(line, from, to)
+    local cells = {}
+    for s = from, to, (to >= from) and 1 or -1 do cells[#cells + 1] = line[s] end
+    return cells
 end
 
 -- Actions ---------------------------------------------------------------------
 
+-- Pair k's line was linked and broke at cell `at`. pieces are the parts
+-- that went, each listed from the number it recoils into to the break.
+function PairPlay:snap(k, at, pieces)
+    self.links[k] = nil -- its link effect, if it's still running
+    local snap = { pair = k, t = self.t, at = at, pieces = {}, sparks = {} }
+    for _, cells in ipairs(pieces) do
+        for _, i in ipairs(cells) do self.flash[i] = nil end
+        if #cells >= 2 then
+            snap.pieces[#snap.pieces + 1] = { cells = cells, length = RECOIL + RECOIL_CELL * #cells }
+        end
+    end
+    for s = 1, SPARKS do
+        snap.sparks[s] = {
+            angle = (s + 0.8 * love.math.random()) * 2 * math.pi / SPARKS,
+            reach = 0.55 + 0.45 * love.math.random(),
+        }
+    end
+    self.snaps[#self.snaps + 1] = snap
+    sound.play("snap")
+end
+
+-- A on a number or a line. On a linked line that breaks it: the line is cut
+-- there to draw on, and the rest recoils into the number at its far end
+-- (on a number, the whole line recoils into the other one).
 function PairPlay:beginLine()
     local g = self.game
-    if not g:begin(g.cursor) then return self:blocked() end
-    sound.play("note")
+    local i = g.cursor
+    local k = g:pairAt(i)
+    local before = (k ~= 0 and g:isLinked(k)) and copy(g.lines[k]) or nil
+    if not g:begin(i) then return self:blocked() end
+    if not before then return sound.play("note") end
+    if before[#before] == i then before = span(before, #before, 1) end
+    self:snap(k, i, { span(before, #before, indexOf(before, i)) })
 end
 
 -- One step of the line being drawn.
@@ -66,11 +122,19 @@ function PairPlay:endLine()
     if res.solved then self:startWin(g.cursor) end
 end
 
+-- B: a linked line breaks where the cursor is, each side recoiling into its
+-- number.
 function PairPlay:eraseLine()
-    local res = self.game:erase(self.game.cursor)
+    local g = self.game
+    local i = g.cursor
+    local k = g:pairAt(i)
+    local before = (k ~= 0 and g:isLinked(k)) and copy(g.lines[k]) or nil
+    local res = g:erase(i)
     if not res.changed then return end
     self.app.markPuzzleDirty("pairlink")
-    sound.play("erase")
+    if not before then return sound.play("erase") end
+    local s = indexOf(before, i) or 1
+    self:snap(k, before[s], { span(before, 1, s), span(before, #before, s) })
 end
 
 -- L1 / R1: to the previous / next pair that isn't linked yet: the end of its
@@ -140,15 +204,26 @@ function PairPlay:linkLength(k)
     return (#self.game.lines[k] - 1) * STEP + RING
 end
 
+-- How long a snap runs, to its last spark or flinch.
+local function snapLength(snap)
+    local length = SPARK_TIME
+    for _, piece in ipairs(snap.pieces) do length = math.max(length, piece.length + LAND) end
+    return length
+end
+
 function PairPlay:update(dt)
     Board.update(self, dt)
     for k, start in pairs(self.links) do
         if self.t > start + self:linkLength(k) then self.links[k] = nil end
     end
+    for n = #self.snaps, 1, -1 do
+        local snap = self.snaps[n]
+        if self.t > snap.t + snapLength(snap) then table.remove(self.snaps, n) end
+    end
 end
 
 function PairPlay:busy()
-    return next(self.links) ~= nil or Board.busy(self)
+    return next(self.links) ~= nil or #self.snaps > 0 or Board.busy(self)
 end
 
 -- Drawing ---------------------------------------------------------------------
@@ -192,6 +267,85 @@ function PairPlay:drawBead(k, width)
     love.graphics.setBlendMode("alpha")
 end
 
+-- The loose pieces of breaking lines, each shrinking back along its cells
+-- into its number, fast and then slowing, a little thinner as it goes.
+function PairPlay:drawSnapPieces(width)
+    for _, snap in ipairs(self.snaps) do
+        for _, piece in ipairs(snap.pieces) do
+            local p = (self.t - snap.t) / piece.length
+            if p < 1 then
+                local e = 1 - (1 - p) ^ 3
+                local cells = piece.cells
+                local rest = (#cells - 1) * (1 - e)
+                local whole = math.floor(rest)
+                local points = {}
+                for s = 1, whole + 1 do
+                    local x, y = self:center(cells[s])
+                    points[#points + 1], points[#points + 2] = x, y
+                end
+                local f = rest - whole
+                if f > 0 then
+                    local x1, y1 = self:center(cells[whole + 1])
+                    local x2, y2 = self:center(cells[whole + 2])
+                    points[#points + 1], points[#points + 2] = x1 + (x2 - x1) * f, y1 + (y2 - y1) * f
+                end
+                local w = width * (1 - 0.3 * e)
+                theme.setLine(snap.pair, 1 - 0.25 * e)
+                love.graphics.setLineWidth(w)
+                if #points >= 4 then love.graphics.line(points) end
+                for q = 1, #points, 2 do love.graphics.circle("fill", points[q], points[q + 1], w / 2) end
+            end
+        end
+    end
+end
+
+-- Sparks flying out of each break, short streaks in the line's colour, with
+-- a bright core flashing where it broke and a ring spreading from it.
+function PairPlay:drawSnapSparks(width)
+    local cs = self.cs
+    for _, snap in ipairs(self.snaps) do
+        local q = (self.t - snap.t) / SPARK_TIME
+        if q < 1 then
+            local cx, cy = self:center(snap.at)
+            local e = ui.ease(q)
+            if q < 0.35 then
+                local f = 1 - q / 0.35
+                theme.setLine(snap.pair, f)
+                love.graphics.circle("fill", cx, cy, width * 1.1 * f)
+                love.graphics.setBlendMode("add")
+                love.graphics.setColor(1, 1, 1, 0.8 * f)
+                love.graphics.circle("fill", cx, cy, width * 0.7 * f)
+                love.graphics.setBlendMode("alpha")
+            end
+            theme.setLine(snap.pair, 0.7 * (1 - q) ^ 2)
+            love.graphics.setLineWidth(2)
+            love.graphics.circle("line", cx, cy, cs * (0.15 + 0.6 * e))
+            theme.setLine(snap.pair, 1 - q)
+            love.graphics.setLineWidth(math.max(3, width * 0.55))
+            for _, spark in ipairs(snap.sparks) do
+                local dx, dy = math.cos(spark.angle), math.sin(spark.angle)
+                local outer = cs * (0.25 + 0.95 * spark.reach * e)
+                local inner = outer - cs * 0.32 * (1 - q)
+                love.graphics.line(cx + dx * inner, cy + dy * inner, cx + dx * outer, cy + dy * outer)
+            end
+        end
+    end
+end
+
+-- How much number i shrinks as a loose piece lands in it (1 for not at all).
+function PairPlay:landScale(i)
+    local scale = 1
+    for _, snap in ipairs(self.snaps) do
+        for _, piece in ipairs(snap.pieces) do
+            if piece.cells[1] == i then
+                local p = (self.t - snap.t - piece.length) / LAND
+                if p >= 0 and p < 1 then scale = scale * (1 - 0.13 * math.sin(math.pi * p)) end
+            end
+        end
+    end
+    return scale
+end
+
 function PairPlay:drawBoard()
     local g, cs = self.game, self.cs
 
@@ -222,6 +376,7 @@ function PairPlay:drawBoard()
         end
     end
     for k in pairs(self.links) do self:drawBead(k, width) end
+    self:drawSnapPieces(width)
 
     -- the numbers: their cell filled with the pair's colour, with an inner
     -- outline once linked
@@ -231,7 +386,7 @@ function PairPlay:drawBoard()
         local k = g.clues[i]
         if k ~= 0 then
             local cx, cy = self:center(i)
-            local scale = self:flashScale(i)
+            local scale = self:flashScale(i) * self:landScale(i)
             local at = self:popTime(k, i)
             if at and self.t >= at then
                 local p = (self.t - at) / POP
@@ -270,6 +425,8 @@ function PairPlay:drawBoard()
     else
         self:drawCursor(nil, 3, true)
     end
+    -- over the cursor, which is usually where the line broke
+    self:drawSnapSparks(width)
 end
 
 function PairPlay:drawPanel()

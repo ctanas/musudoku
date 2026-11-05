@@ -6,14 +6,18 @@ local sound = { enabled = true }
 local RATE = 22050
 local sources = {}
 
--- Build a sound from a list of tones: { freq, start, length, volume, shape }.
+-- Build a sound from a list of tones: { freq, start, length, volume, shape,
+-- glide }. shape "noise" ignores freq (a crack or click); glide, if given,
+-- is the frequency the tone slides to by its end.
 local function synth(tones, length)
     local samples = math.floor(length * RATE)
     local data = love.sound.newSoundData(samples, RATE, 16, 1)
     local buffer = {}
     for n = 0, samples - 1 do buffer[n] = 0 end
+    local seed = 12345 -- the same noise every time
     for _, tone in ipairs(tones) do
         local freq, start, len, vol, shape = tone[1], tone[2], tone[3], tone[4], tone[5] or "sine"
+        local ratio = tone[6] and (tone[6] / freq)
         local s0 = math.floor(start * RATE)
         local count = math.floor(len * RATE)
         local attack = math.max(1, math.floor(0.004 * RATE))
@@ -23,9 +27,18 @@ local function synth(tones, length)
             local t = k / RATE
             local env = math.exp(-t * (5.5 / len))
             if k < attack then env = env * (k / attack) end
-            local phase = 2 * math.pi * freq * t
+            local phase
+            if ratio then
+                -- the frequency moves exponentially from freq to the glide's
+                phase = 2 * math.pi * freq * len / math.log(ratio) * (ratio ^ (t / len) - 1)
+            else
+                phase = 2 * math.pi * freq * t
+            end
             local v
-            if shape == "soft" then
+            if shape == "noise" then
+                seed = (seed * 16807) % 2147483647 -- stays exact in a double
+                v = seed / 1073741823.5 - 1
+            elseif shape == "soft" then
                 v = math.sin(phase) * 0.8 + math.sin(phase * 2) * 0.2
             elseif shape == "tri" then
                 v = (2 / math.pi) * math.asin(math.sin(phase))
@@ -68,6 +81,14 @@ local DEFS = {
             { 659, 0, 0.16, 0.16, "soft" }, { 988, 0.05, 0.18, 0.14, "soft" },
             { 1319, 0.10, 0.24, 0.12 }, { 1976, 0.10, 0.20, 0.05 },
         }, 0.36)
+    end,
+    -- Pairlink: a linked line breaks; a crack, and an elastic twanging back
+    snap   = function()
+        return synth({
+            { 0, 0, 0.03, 0.34, "noise" },
+            { 1500, 0, 0.13, 0.15, "tri", 260 },
+            { 760, 0.008, 0.17, 0.11, "soft", 150 },
+        }, 0.19)
     end,
     win    = function()
         return synth({

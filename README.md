@@ -1,14 +1,14 @@
 # muSudoku
 
 Four logic puzzles for handhelds, built with LÖVE 11.5: **Sudoku**, **Solo**,
-**Pairlink** and **Hoshi**. The title screen shows a box for each; pick one with left /
-right or L1 / R1. It runs on
+**Pairlink** and **Hoshi**. The title screen shows a box for each; pick one with L1 / R1,
+or press left and move between the boxes with the D-pad. It runs on
 MustardOS, and on other handheld systems through PortMaster. Designed for the Anbernic
 RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
 <img src="screenshots/title.png" alt="Title screen: a box for each of the four games on the left, with Sudoku chosen" width="49%"> <img src="screenshots/play.png" alt="Sudoku: a Hard puzzle with pencil notes" width="49%">
 <img src="screenshots/solo.png" alt="Solo: a 7×7 Medium puzzle part way through, black shaded cells with rings on the cells kept beside them" width="49%"> <img src="screenshots/pairlink.png" alt="Pairlink: an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%">
-<img src="screenshots/hoshi.png" alt="Hoshi: a 9×9 Medium puzzle part way through, with bridges being built from an island" width="49%">
+<img src="screenshots/hoshi.png" alt="Hoshi: a 9×9 Medium puzzle part way through, with a bridge being drawn from an island" width="49%">
 
 | Game | The goal | Boards | Levels |
 |---|---|---|---|
@@ -65,7 +65,8 @@ runtime that PortMaster already includes.
 
 | Button | What it does |
 |---|---|
-| L1 / R1 (or left / right), on the title screen | Pick a game: Sudoku, Solo, Pairlink or Hoshi |
+| L1 / R1 on the title screen | Pick a game: Sudoku, Solo, Pairlink or Hoshi |
+| Left on the title screen | Move to the game boxes: the D-pad picks one, A (or right from the right-hand boxes) goes back to the menu |
 | Start / Menu | Pause menu |
 | Menu + Start | Save and quit |
 
@@ -303,8 +304,10 @@ Pairlink is a Numberlink-style puzzle. Join each pair of matching numbers with a
 
 Starting from a number replaces that pair's line. Reaching the other number links the
 pair: a bright bead runs along the line, its cells flash in turn, both numbers pop with
-a ring, and a chime plays. Cells a line uses are tinted with its colour, and the side
-panel shows how many pairs are linked and how much of the board is used.
+a ring, and a chime plays. Breaking a linked line, with B or by drawing from it again,
+snaps it: sparks fly from the break, the loose pieces spring back into their numbers,
+and it cracks. Cells a line uses are tinted with its colour, and the side panel shows
+how many pairs are linked and how much of the board is used.
 
 **Sizes and levels.** 7×7, 8×8 and 9×9, each with at most 9 pairs (one digit per
 number), in three levels:
@@ -331,16 +334,18 @@ the islands with bridges:
 
 | Button | Hoshi |
 |---|---|
-| D-pad | Move to the next island that way (the next one in line, or else the nearest one that way); while building, add a bridge that way |
-| A | Start building from the island; A again stops. Or hold A, press directions, and let go to stop |
-| B | Take away the island's bridges (or stop building) |
+| D-pad | Move to the next island that way (the next one in line, or else the nearest one that way); while drawing, draw a bridge that way |
+| A | Start drawing from the island; A again stops |
+| B | Take away the island's bridges (or stop drawing) |
 | L1 / R1 | Jump to the previous / next island that doesn't have its number of bridges |
 | L2 / R2 | Undo / redo |
 | Start / Menu | Pause menu |
 
-While building, each press of a direction adds a bridge to the island that way: one,
-then two, then none again (one, then none, next to a 1). Faint lines show where a bridge
-can still go. A bridge that would cross another isn't built, and the one in its way
+Bridges are drawn like Pairlink's lines. While drawing, each direction draws a bridge to
+the island that way, and the cursor goes on to that island, so one bridge can follow
+another. Drawing over a bridge makes it two, so for two bridges go across and back again;
+drawing over two takes them away (next to a 1, drawing over one does). Faint lines show
+where a bridge can still go. A bridge that would cross another isn't built, and the one in its way
 glows red. An island with its number of bridges is tinted in the bridges' colour, and
 one with too many turns red. The cursor's row and column are lit, so islands in line
 with it stand out, and the side panel counts the islands done.
@@ -486,7 +491,7 @@ are off. Turning sound on later loads them then.
 `MUSUDOKU_FXSHOTS=1 love game` captures the completion effects mid-animation.
 
 `MUSUDOKU_GAMESHOTS=1 love game` plays through the Solo, Pairlink and Hoshi screens
-(the title's game boxes, new puzzle, play, a link effect, building bridges, pause, wins
+(the title's game boxes, new puzzle, play, a link effect, drawing bridges, pause, wins
 and statistics, in several themes) and saves screenshots named `g*.png`.
 `MUSUDOKU_GAMESHOTS=hoshi` takes only Hoshi's.
 

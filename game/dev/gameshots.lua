@@ -31,8 +31,9 @@ function M.start(app)
     local function pairs_() return app.puzzles.pairlink end
     local function islands() return app.puzzles.hoshi end
 
-    -- Hoshi: build the answer's bridges the way a player would (A, a
-    -- direction per bridge, A), the first `count` of them (all if nil).
+    -- Hoshi: draw the answer's bridges the way a player would (A, across,
+    -- and back again for a second bridge, A), the first `count` of them (all
+    -- if nil).
     local function hoshiBuild(count, from)
         local g = islands()
         for k, b in ipairs(g.solution) do
@@ -40,8 +41,8 @@ function M.start(app)
             if k >= (from or 1) then
                 local link = g.P.links[hoshi.linkBetween(g.P, b[1], b[2])]
                 g.cursor = link.a
-                press("a")
-                for _ = 1, b[3] do press(link.horizontal and "right" or "down") end
+                press("a", link.horizontal and "right" or "down")
+                if b[3] == 2 then press(link.horizontal and "left" or "up") end
                 press("a")
             end
         end
@@ -239,11 +240,11 @@ function M.start(app)
 
     local steps = {
         function() return 0.3 end,
-        function() press("right") return 2.5 end,
+        function() press("r1") return 2.5 end,
         function() shot("01_title_solo") end,
-        function() press("right") return 2.5 end,
+        function() press("r1") return 2.5 end,
         function() shot("02_title_pairlink") end,
-        function() press("left") return 0.3 end,
+        function() press("l1") return 0.3 end,
         function() press("a") return 0.4 end, -- New puzzle (nothing to continue yet)
         function() shot("03_choose_solo") end,
         function() press("right", "down", "a") return 0.1 end,
@@ -289,7 +290,7 @@ function M.start(app)
         function() press("b") return 0.3 end,
 
         -- Pairlink
-        function() press("right") return 0.3 end,
+        function() press("r1") return 0.3 end,
         function() press("a") return 0.4 end,
         function() shot("11_choose_pairlink") end,
         function() press("left", "down", "down", "a") return 1.5 end,
@@ -385,7 +386,7 @@ function M.start(app)
         function() shot("25_title_continue") end,
 
         -- replacing a puzzle in progress, undo and redo, restarting
-        function() press("left") return 0.3 end, -- Solo, with a puzzle in progress
+        function() press("l1") return 0.3 end, -- Solo, with a puzzle in progress
         function() press("down", "a", "a") return 0.4 end,
         function() shot("26_solo_replace_confirm") end,
         function() press("a") return 1.2 end,
@@ -439,7 +440,7 @@ function M.start(app)
             return 2.8
         end,
         function() shot("40b_title_sudoku") end,
-        function() press("right", "right", "right") return 0.4 end,
+        function() press("l1") return 0.4 end,
         function() press("a") return 0.4 end, -- New puzzle (nothing to continue)
         function() shot("41_choose_hoshi") end,
         function() press("left", "down", "a") return 0.1 end, -- 7x7 Medium
@@ -453,7 +454,7 @@ function M.start(app)
             press("a")
             return 0.4
         end,
-        function() shot("45_hoshi_building") end,
+        function() shot("45_hoshi_drawing") end,
         function()
             press("a")
             return 0.3

@@ -10,8 +10,13 @@ Title.__index = Title
 local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
 
 -- The games, in order. Each has a box on the left, two by two, showing a
--- small picture of it. Left / right (or L1 / R1) pick one, and the choice
--- is remembered; the chosen box plays a short demo of its game.
+-- small picture of it; the chosen box plays a short demo of its game, and
+-- the choice is remembered.
+--
+-- The D-pad moves where it points. It starts in the menu (up / down); left
+-- goes over to the boxes, where it moves from box to box, choosing each
+-- one it reaches. Right from the right-hand boxes, A or B goes back to the
+-- menu. L1 / R1 change the game from either side.
 local GAMES = { { "sudoku", "Sudoku" }, { "solo", "Solo" }, { "pairlink", "Pairlink" }, { "hoshi", "Hoshi" } }
 
 local CELL = 40                 -- a box is three cells across
@@ -46,7 +51,7 @@ local HOSHI_BRIDGES = { { 1, 3, -1, 0.8 }, { 1, 3, 1, 1.1 }, { 1, 7, 0, 1.45 }, 
 local HOSHI_GROW = 0.18
 
 function Title.new(app)
-    local self = setmetatable({ app = app, t = 0, sel = 1 }, Title)
+    local self = setmetatable({ app = app, t = 0, sel = 1, inBoxes = false }, Title)
     self:build()
     return self
 end
@@ -120,8 +125,7 @@ function Title:busy()
     return self.t < DEMO_TIME -- the chosen box's demo plays once
 end
 
-function Title:switchGame(dir)
-    local k = (self:gameIndex() - 1 + dir) % #GAMES + 1
+function Title:chooseGame(k)
     self.app.settings.game = GAMES[k][1]
     self.app.saveSettings()
     self.sel, self.t = 1, 0
@@ -129,17 +133,44 @@ function Title:switchGame(dir)
     sound.play("note")
 end
 
+-- The box next to box k in direction a, two by two, or nil at the edge.
+local function boxToward(k, a)
+    local col, row = (k - 1) % 2, math.floor((k - 1) / 2)
+    if a == "left" then col = col - 1
+    elseif a == "right" then col = col + 1
+    elseif a == "up" then row = row - 1
+    else row = row + 1 end
+    if col < 0 or col > 1 or row < 0 or row > 1 then return nil end
+    return row * 2 + col + 1
+end
+
+function Title:setInBoxes(on)
+    self.inBoxes = on
+    sound.play("menu")
+end
+
 function Title:action(a)
-    if a == "up" then
+    if a == "l1" or a == "r1" then
+        self:chooseGame((self:gameIndex() - 1 + (a == "l1" and -1 or 1)) % #GAMES + 1)
+    elseif self.inBoxes then
+        if a == "a" or a == "b" or a == "start" then
+            self:setInBoxes(false)
+        elseif a == "up" or a == "down" or a == "left" or a == "right" then
+            local k = boxToward(self:gameIndex(), a)
+            if k then
+                self:chooseGame(k)
+            elseif a == "right" then
+                self:setInBoxes(false)
+            end
+        end
+    elseif a == "up" then
         self.sel = (self.sel - 2) % #self.items + 1
         sound.play("menu")
     elseif a == "down" then
         self.sel = self.sel % #self.items + 1
         sound.play("menu")
-    elseif a == "left" or a == "l1" then
-        self:switchGame(-1)
-    elseif a == "right" or a == "r1" then
-        self:switchGame(1)
+    elseif a == "left" then
+        self:setInBoxes(true)
     elseif a == "a" or a == "start" then
         sound.play("open")
         self.items[self.sel].run()
@@ -401,8 +432,8 @@ end
 local DEMOS = { sudoku = drawSudokuBox, solo = drawSoloBox, pairlink = drawPairBox, hoshi = drawHoshiBox }
 
 -- The four boxes, two by two, each with its game's name under it. The
--- chosen one plays its demo and is outlined; the others show how theirs
--- end, dimmed.
+-- chosen one plays its demo and is outlined, in the accent color while the
+-- D-pad is on the boxes; the others show how theirs end, dimmed.
 function Title:drawBoxes()
     local current = self:gameIndex()
     for k, game in ipairs(GAMES) do
@@ -411,8 +442,8 @@ function Title:drawBoxes()
         local on = (k == current)
         DEMOS[game[1]](on and self.t or STILL, on)
         if on then
-            theme.set("accent")
-            love.graphics.setLineWidth(3)
+            theme.set(self.inBoxes and "accent" or "muted")
+            love.graphics.setLineWidth(self.inBoxes and 3 or 2)
             ui.rect("line", bx - 7, by - 7, BOX + 14, BOX + 14, 13)
         else
             theme.set("bg", 0.55)
@@ -433,7 +464,7 @@ function Title:draw()
     local y, step = 182, 36
     if #self.items <= 7 then y, step = 190, 40 end
     for k, item in ipairs(self.items) do
-        local selected = (k == self.sel)
+        local selected = (k == self.sel) and not self.inBoxes
         local cy = y + (k - 1) * step
         if selected then
             theme.set("accent")
@@ -449,7 +480,7 @@ function Title:draw()
 
     theme.set("muted")
     ui.centered("Version " .. self.app.version, 24, 452, 13, "regular", "left")
-    ui.hints({ { input.pair("l1"), "Game" }, { "A", "Select" } }, 696, 452, "right")
+    ui.hints({ { input.pair("l1"), "Game" }, { "A", self.inBoxes and "Choose" or "Select" } }, 696, 452, "right")
 end
 
 return Title

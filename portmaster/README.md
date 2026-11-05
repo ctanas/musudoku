@@ -26,4 +26,4 @@ Solo: A shades a cell (it turns black), X marks it to keep, B clears it, holding
 
 Pairlink: A on a number (or a line) starts drawing, the D-pad draws, stepping back along the line takes steps back, and reaching the other number links the pair. A stops drawing, B erases the line under the cursor, L1 / R1 jump to the next unlinked pair, L2 / R2 undo and redo.
 
-Hoshi: the D-pad moves between islands. A starts building, and each direction then adds a bridge that way (one, two, then none); A stops. B takes away the island's bridges, L1 / R1 jump to the next unfinished island, L2 / R2 undo and redo.
+Hoshi: the D-pad moves between islands. A starts drawing, as in Pairlink: each direction draws a bridge to the island that way and moves on to it, and drawing back over it makes two bridges (over two, none). A stops drawing, B takes away the island's bridges, L1 / R1 jump to the next unfinished island, L2 / R2 undo and redo.
