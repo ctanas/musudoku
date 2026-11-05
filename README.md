@@ -1,62 +1,38 @@
 # muSudoku
 
-A Sudoku game for handhelds, built with LÖVE 11.5, with two more logic puzzles: **Solo**
-and **Pairlink** (see their sections below). It runs on MustardOS, and on other handheld
-systems through PortMaster. Designed for the Anbernic RG34XXSP's 720×480 screen and
-scaled to fit other resolutions.
+Three logic puzzles for handhelds, built with LÖVE 11.5: **Sudoku**, **Solo** and
+**Pairlink**. Switch between them with L1 / R1 on the title screen. It runs on
+MustardOS, and on other handheld systems through PortMaster. Designed for the Anbernic
+RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
-<img src="screenshots/title.png" alt="Title screen" width="49%"> <img src="screenshots/play.png" alt="A Hard puzzle with pencil notes" width="49%">
-<img src="screenshots/theme-paper.png" alt="Paper theme" width="49%"> <img src="screenshots/theme-chalkboard.png" alt="Chalkboard theme, choosing a number in the side panel" width="49%">
+<img src="screenshots/title.png" alt="Title screen, with the Sudoku, Solo and Pairlink tabs" width="49%"> <img src="screenshots/play.png" alt="Sudoku: a Hard puzzle with pencil notes" width="49%">
+<img src="screenshots/solo.png" alt="Solo: a 7×7 Medium puzzle part way through, black shaded cells with rings on the cells kept beside them" width="49%"> <img src="screenshots/pairlink.png" alt="Pairlink: an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%">
 
-## Features
+| Game | The goal | Boards | Levels |
+|---|---|---|---|
+| [Sudoku](#sudoku) | Fill the grid so every row, column and 3×3 box has the numbers 1 to 9 | 9×9 | Easy, Medium, Hard, Expert, Master, plus a daily puzzle and puzzle packs |
+| [Solo](#solo) | Shade cells until no number repeats in a row or column | 5×5, 7×7, 9×9 | Easy, Medium, Hard |
+| [Pairlink](#pairlink) | Join each pair of matching numbers with a line, filling the board | 7×7, 8×8, 9×9 | Easy, Medium, Hard |
 
-- Five difficulties. Puzzles are generated on the device, always have exactly one
-  solution, and are graded by the techniques a person needs to solve them. Two
-  generators to choose from in Settings: Classic and Dancing Links (see "How puzzles
-  are made" below):
-  - **Easy**: scanning rows and boxes (hidden singles)
-  - **Medium**: adds cells with only one possible number (naked singles)
-  - **Hard**: needs pointing pairs, or naked and hidden pairs and triples
-  - **Expert**: needs an X-Wing, Swordfish or XY-Wing
-  - **Master**: needs techniques beyond those, such as chains
-- Pen and pencil modes, one-button note filling, notes that clear themselves, and a
-  Large notes setting for easier reading
-- Two ways to enter numbers (Settings → Input): **Cell first** picks a cell, then its
-  number from the side panel's number tiles or a pop-up pad (Settings → Number pad).
-  **Number first** picks a number with L1 / R1, then A puts it in
-  each cell you choose (see "Number-first input" below)
-- Undo and redo, optional mistake checking. With it off, **Check board** in the pause
-  menu says how many of your numbers are wrong, but not which, for the cost of a hint
-- L1 / R1 jump to the previous / next empty cell
-- Optional explained hints (off by default): Y finds the easiest logical move and
-  explains it on the board, walking through any groundwork it needs first (see
-  "Explained hints" below)
-- Highlights for the cursor's row, column and box, and for matching numbers
-- Distraction-free mode, from the pause menu: just the board, centered on the screen
-- Celebrations: completing a row, column, box or all nine of a number makes the
-  digits bounce in a ripple with a glow pulse, and solving the puzzle adds a
-  board-wide wave and confetti
-- Auto-save, with Continue on the title screen
-- Statistics per difficulty: started, solved, perfect (no hints, no mistakes), best
-  and average time. A Streaks page shows puzzles solved in a row per difficulty (starting
-  a new one before finishing the current one ends it) and the daily streak, and a
-  Recent page lists the last 50 solves of every kind
+## In every game
+
+- Puzzles are made on the device, always have exactly one solution, and are graded
+  by the reasoning a person needs to solve them (see "How puzzles are made" below)
+- Each game keeps its own puzzle in progress, saved automatically: **Continue** on the
+  title screen picks it up, and starting a puzzle in one game never replaces another
+  game's
+- Undo and redo, and a pause menu to restart, start a new puzzle or change settings
+- Statistics for each game: solved, best and average times, and streaks (Sudoku per
+  difficulty, Solo and Pairlink per size and level). The Recent page lists the last 50
+  solves across all three games
+- Celebrations: solving a puzzle sends a wave across the board, with confetti
 - Nine themes. Light: Paper, Sakura, Frankfurt (Lufthansa blue and yellow) and
   Solarized Light. Dark: Cyanotype (default), Solarized Dark, Nord, Gruvbox, and
   Chalkboard (green slate with chalk dust and a wooden frame around the board)
 - Sound effects generated in code, so no audio files are needed
-- Daily puzzle: one puzzle a day, the same for everyone, with a streak for days solved
-  in a row (see "Daily puzzle" below)
-- Puzzle packs: play collections of puzzles published by others, with progress, best
-  and average time tracked per pack
 - Battery friendly: the screen is only redrawn when something changes, and with
   sound effects off the audio system isn't started at all (see "Idle rendering"
   below)
-- Two more games, chosen with L1 / R1 on the title screen: **Solo**, shading cells
-  until no number repeats (5×5, 7×7 and 9×9), and **Pairlink**, joining pairs of
-  numbers with lines that fill the board (7×7, 8×8 and 9×9). Both are generated on
-  the device with exactly one solution, in Easy, Medium and Hard, and each keeps its
-  own puzzle in progress and statistics per size and level
 
 <img src="screenshots/themes.png" alt="All nine themes. Top row: Cyanotype, Paper, Sakura. Middle: Frankfurt, Solarized Light, Solarized Dark. Bottom: Nord, Gruvbox, Chalkboard" width="100%">
 
@@ -82,9 +58,190 @@ Run `./build.sh portmaster`, or download `musudoku.zip` from a release. Copy it 
 `PortMaster/autoinstall/` on the SD card, then open PortMaster. It uses the LÖVE 11.5
 runtime that PortMaster already includes.
 
+## Controls in every game
+
+| Button | What it does |
+|---|---|
+| L1 / R1 (or left / right), on the title screen | Switch between Sudoku, Solo and Pairlink |
+| Start / Menu | Pause menu |
+| Menu + Start | Save and quit |
+
+Each game's own buttons are in its section below. These are the default shoulder
+buttons. **Settings → Shoulder buttons → L1 / R1 undo** swaps the two pairs in every
+game, as before version 1.3.3: L1 / R1 then undo and redo (and turn pages and step
+through hints), and L2 / R2 do what L1 / R1 did. The on-screen button hints follow the
+setting.
+
+On a PC keyboard: arrows move, Enter/Space is A, Backspace is B, X and Y are X and Y,
+Q/E are L1/R1, Page Up/Page Down are L2/R2, Tab is Select, Esc is Start, and in Sudoku
+1–9 / 0 enter or erase directly.
+
+## Sudoku
+
+<img src="screenshots/theme-paper.png" alt="Sudoku in the Paper theme" width="49%"> <img src="screenshots/theme-chalkboard.png" alt="Sudoku in the Chalkboard theme, choosing a number in the side panel" width="49%">
+
+Fill the 9×9 grid so every row, column and 3×3 box holds the numbers 1 to 9.
+
+### Features
+
+- Five difficulties, graded by the techniques a person needs. Two generators to
+  choose from in Settings: Classic and Dancing Links (see "How puzzles are made"
+  below):
+  - **Easy**: scanning rows and boxes (hidden singles)
+  - **Medium**: adds cells with only one possible number (naked singles)
+  - **Hard**: needs pointing pairs, or naked and hidden pairs and triples
+  - **Expert**: needs an X-Wing, Swordfish or XY-Wing
+  - **Master**: needs techniques beyond those, such as chains
+- Pen and pencil modes, one-button note filling, notes that clear themselves, and a
+  Large notes setting for easier reading
+- Two ways to enter numbers (Settings → Input): **Cell first** picks a cell, then its
+  number from the side panel's number tiles or a pop-up pad (Settings → Number pad).
+  **Number first** picks a number with L1 / R1, then A puts it in
+  each cell you choose (see "Number-first input" below)
+- Optional mistake checking. With it off, **Check board** in the pause menu says how
+  many of your numbers are wrong, but not which, for the cost of a hint
+- L1 / R1 jump to the previous / next empty cell
+- Optional explained hints (off by default): Y finds the easiest logical move and
+  explains it on the board, walking through any groundwork it needs first (see
+  "Explained hints" below)
+- Highlights for the cursor's row, column and box, and for matching numbers
+- Distraction-free mode, from the pause menu: just the board, centered on the screen
+- Completing a row, column, box or all nine of a number makes the digits bounce in a
+  ripple with a glow pulse
+- Statistics per difficulty: started, solved, perfect (no hints, no mistakes), best
+  and average time. A Streaks page shows puzzles solved in a row per difficulty
+  (starting a new one before finishing the current one ends it) and the daily streak
+- Daily puzzle: one puzzle a day, the same for everyone, with a streak for days solved
+  in a row (see "Daily puzzle" below)
+- Puzzle packs: play collections of puzzles published by others, with progress, best
+  and average time tracked per pack
+
+### Controls
+
+| Button | On the board | In the number pad |
+|---|---|---|
+| D-pad | Move (hold to repeat, wraps at edges) | Choose a number |
+| A | Open the number pad (Number first: place the chosen number) | Place number, or toggle note in pencil mode |
+| B | Erase the cell | Close |
+| X | Switch pen / pencil | Switch pen / pencil |
+| Y | Hint, if turned on in Settings | Erase the cell |
+| L1 / R1 | Previous / next empty cell, hold to repeat (Number first: change the number) | Same, and the pad stays open |
+| L2 / R2 | Undo / redo | Undo / redo |
+| Select | Fill all notes, or clear them if there are any | |
+| Start / Menu | Pause menu | Pause menu |
+
+**Settings → Number pad** sets where you pick the number. With **Side panel** (the
+default), the pad is the panel's nine number tiles: A starts picking there, and the
+chosen tile is tinted and outlined. Meanwhile the cursor on the board glows softly,
+to show the cell is waiting for its number. **Pop-up** opens a 3x3 pad next to the cell.
+Distraction-free mode has no side panel, so it always uses the pop-up.
+
+In pen mode the pad closes after placing a number. In pencil mode it stays open so
+you can toggle several notes.
+
+### Daily puzzle
+
+**Daily puzzle** on the title screen gives one puzzle per day. It's built from the
+date, so everyone playing the same version gets the same puzzle that day, with no
+internet needed. It's Easy on Monday, Medium on Tuesday and Wednesday, Hard on Thursday
+and Friday, and Expert at the weekend.
+
+The title screen shows whether today's puzzle is solved and your streak of days solved
+in a row. A day counts whenever its puzzle is solved, so finishing yesterday's puzzle
+after midnight still keeps the streak. Daily puzzles don't count toward the
+per-difficulty statistics. The puzzle depends on the device's date, so if the clock
+was never set, the game asks you to set it in the system settings first.
+
+### Puzzle packs
+
+Puzzle packs are text files of puzzles you add yourself. Put them in:
+
+```
+MUOS/application/muSudoku/packs/
+```
+
+That's the folder next to `mux_launch.sh` on whichever SD card the app is installed
+on. It's created on first launch, and the game shows the exact path if it's empty.
+Open **Puzzle packs** from the title screen, pick a file, then play the next unsolved
+puzzle, a random one, or a puzzle by number.
+
+**Formats.** Files ending in `.txt`, `.sdm`, `.sdk`, `.csv` or `.ss` are read. Each
+puzzle is either one line of 81 characters (1–9 for givens, 0 or . for empty cells)
+or a grid of 9 lines with 9 cells each. Divider lines, `|`, header lines like
+`Grid 01`, `#` comments and extra columns (ids, ratings, CSV fields, a solution after
+the puzzle) are ignored. Up to 100,000 puzzles per file are used, so split bigger
+collections into several files.
+
+**Checking and grading.** When you start a puzzle the game checks it has exactly one
+solution, skipping it with a message if not, and grades it Easy to Master with the
+same rules as generated puzzles. Pack puzzles don't count toward the per-difficulty
+statistics. Instead each pack keeps its own best time (solves without hints), average
+and perfect solves, shown on its screen. Progress is saved per file name, and
+changing a file's contents resets its progress.
+
+**Where to find puzzles.** The Sudoku Exchange puzzle bank
+(github.com/grantm/sudoku-exchange-puzzle-bank) says its puzzles are free to use for
+any purpose. Other well-known collections, such as Gordon Royle's 17-clue list, the
+Enjoy Sudoku forum's hardest puzzles and Kaggle datasets, have their own terms or none
+stated, so check before sharing them further.
+
+The muxapp ships `Starter pack.txt`: 40 puzzles from this game's own generator, free
+to use.
+
+### Explained hints
+
+Hints are off by default. Turn them on in **Settings → Hints**, which has three
+choices: **Off** hides the hint button and the hint counter, **Explained** gives the
+hints described here, and **Instant** reveals a number straight away.
+
+With Explained hints on, press Y and the side panel explains the easiest move a
+person could make right now, with the board highlighting the cells involved:
+
+- **Only place for a number:** a number that fits just one cell in a row, column or
+  box. The numbers blocking the other cells are circled.
+- **Only number that fits:** a cell where every other number is already in its row,
+  column or box.
+- **Last empty cell** in a row, column or box.
+- **Groundwork steps** for harder puzzles: pointing pairs, numbers locked in a box,
+  naked pairs and triples, hidden pairs, and for Expert puzzles X-Wings, Swordfish
+  and XY-Wings. Ruled-out candidates are struck through in red, and A removes them
+  from your notes. Only steps the final move depends on are shown.
+- **Mistakes come first:** if a number on the board is wrong, the hint points it out
+  and A erases it.
+- **Fallback:** for moves beyond these techniques (Master puzzles), it says so and
+  offers the number. Every puzzle up to Expert can be solved with explained hints
+  alone.
+
+In the hint: A does the step's action, Y goes to the next step, L2 goes back, B
+closes. Opening a hint counts as one hint. Hints work from the numbers on the board, not your notes, so
+they're right even when your notes are incomplete.
+
+Instant hints reveal the selected cell, or the easiest unsolved cell if the selected
+one is already right. Hinted cells lock, and solves with hints don't count toward best
+times.
+
+### Number-first input
+
+With **Settings → Input → Number first**, there's no pad. L1 / R1 choose a number,
+which is highlighted in the side panel and on the board, and A puts it in the cell
+under the cursor, or toggles it as a note in pencil mode. A on a cell that already
+has that number clears it. A on a given picks up the given's number instead. L1 / R1
+skip numbers that are already on the board nine times, and once the chosen number
+is placed nine times, the next number still needed is chosen. An empty cell shows a
+faint preview of what A would put there.
+
+### Distraction-free mode
+
+Choose **Distraction-free** in the pause menu to hide the side panel and center the
+board, with nothing else on screen. **Show side panel** in the same menu brings it
+back, and the choice is remembered. The clock keeps running and shows in the pause
+menu, and an explained hint brings the panel back until you close it.
+
+<img src="screenshots/distraction-free.png" alt="Distraction-free mode: only the board, centered" width="49%">
+
 ## Solo
 
-<img src="screenshots/solo.png" alt="Solo, a 7×7 Medium puzzle part way through: black shaded cells, with rings on the cells kept beside them" width="49%"> <img src="screenshots/solo-paper.png" alt="Solo, a 9×9 Hard puzzle in the Paper theme" width="49%">
+<img src="screenshots/solo-paper.png" alt="Solo, a 9×9 Hard puzzle in the Paper theme" width="49%">
 
 Solo is a Hitori-style puzzle. The board is full of numbers, and some repeat. Shade
 cells until:
@@ -124,7 +281,7 @@ graded by the reasoning a person needs:
 
 ## Pairlink
 
-<img src="screenshots/pairlink.png" alt="Pairlink, an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%"> <img src="screenshots/pairlink-link.png" alt="The link effect: a bright bead runs along a just-finished line while its number pops with a ring" width="49%">
+<img src="screenshots/pairlink-link.png" alt="Pairlink's link effect: a bright bead runs along a just-finished line while its number pops with a ring" width="49%">
 
 Pairlink is a Numberlink-style puzzle. Join each pair of matching numbers with a line:
 
@@ -156,154 +313,23 @@ number), in three levels:
   pair, and cells side by side that no pair can reach both of aren't linked
 - **Hard**: needs trying a line's next step and finding that it breaks a rule
 
-## Daily puzzle
-
-**Daily puzzle** on the title screen gives one puzzle per day. It's built from the
-date, so everyone playing the same version gets the same puzzle that day, with no
-internet needed. It's Easy on Monday, Medium on Tuesday and Wednesday, Hard on Thursday
-and Friday, and Expert at the weekend.
-
-The title screen shows whether today's puzzle is solved and your streak of days solved
-in a row. A day counts whenever its puzzle is solved, so finishing yesterday's puzzle
-after midnight still keeps the streak. Daily puzzles don't count toward the
-per-difficulty statistics. The puzzle depends on the device's date, so if the clock
-was never set, the game asks you to set it in the system settings first.
-
-## Puzzle packs
-
-Puzzle packs are text files of puzzles you add yourself. Put them in:
-
-```
-MUOS/application/muSudoku/packs/
-```
-
-That's the folder next to `mux_launch.sh` on whichever SD card the app is installed
-on. It's created on first launch, and the game shows the exact path if it's empty.
-Open **Puzzle packs** from the title screen, pick a file, then play the next unsolved
-puzzle, a random one, or a puzzle by number.
-
-**Formats.** Files ending in `.txt`, `.sdm`, `.sdk`, `.csv` or `.ss` are read. Each
-puzzle is either one line of 81 characters (1–9 for givens, 0 or . for empty cells)
-or a grid of 9 lines with 9 cells each. Divider lines, `|`, header lines like
-`Grid 01`, `#` comments and extra columns (ids, ratings, CSV fields, a solution after
-the puzzle) are ignored. Up to 100,000 puzzles per file are used, so split bigger
-collections into several files.
-
-**Checking and grading.** When you start a puzzle the game checks it has exactly one
-solution, skipping it with a message if not, and grades it Easy to Master with the
-same rules as generated puzzles. Pack puzzles don't count toward the per-difficulty
-statistics. Instead each pack keeps its own best time (solves without hints), average
-and perfect solves, shown on its screen. Progress is saved per file name, and
-changing a file's contents resets its progress.
-
-**Where to find puzzles.** The Sudoku Exchange puzzle bank
-(github.com/grantm/sudoku-exchange-puzzle-bank) says its puzzles are free to use for
-any purpose. Other well-known collections, such as Gordon Royle's 17-clue list, the
-Enjoy Sudoku forum's hardest puzzles and Kaggle datasets, have their own terms or none
-stated, so check before sharing them further.
-
-The muxapp ships `Starter pack.txt`: 40 puzzles from this game's own generator, free
-to use.
-
-## Controls
-
-| Button | On the board | In the number pad |
-|---|---|---|
-| D-pad | Move (hold to repeat, wraps at edges) | Choose a number |
-| A | Open the number pad (Number first: place the chosen number) | Place number, or toggle note in pencil mode |
-| B | Erase the cell | Close |
-| X | Switch pen / pencil | Switch pen / pencil |
-| Y | Hint, if turned on in Settings | Erase the cell |
-| L1 / R1 | Previous / next empty cell, hold to repeat (Number first: change the number) | Same, and the pad stays open |
-| L2 / R2 | Undo / redo | Undo / redo |
-| Select | Fill all notes, or clear them if there are any | |
-| Start / Menu | Pause menu | Pause menu |
-| Menu + Start | Save and quit | Save and quit |
-
-On the title screen, L1 / R1 (or left / right) switch between Sudoku, Solo and
-Pairlink. Solo's and Pairlink's controls are in their sections above.
-
-These are the default shoulder buttons. **Settings → Shoulder buttons → L1 / R1 undo**
-swaps the two pairs everywhere, as before version 1.3.3: L1 / R1 undo and redo, turn
-pages and step through hints, and L2 / R2 jump between empty cells and change the
-number. The on-screen button hints follow the setting.
-
-### Explained hints
-
-Hints are off by default. Turn them on in **Settings → Hints**, which has three
-choices: **Off** hides the hint button and the hint counter, **Explained** gives the
-hints described here, and **Instant** reveals a number straight away.
-
-With Explained hints on, press Y and the side panel explains the easiest move a
-person could make right now, with the board highlighting the cells involved:
-
-- **Only place for a number:** a number that fits just one cell in a row, column or
-  box. The numbers blocking the other cells are circled.
-- **Only number that fits:** a cell where every other number is already in its row,
-  column or box.
-- **Last empty cell** in a row, column or box.
-- **Groundwork steps** for harder puzzles: pointing pairs, numbers locked in a box,
-  naked pairs and triples, hidden pairs, and for Expert puzzles X-Wings, Swordfish
-  and XY-Wings. Ruled-out candidates are struck through in red, and A removes them
-  from your notes. Only steps the final move depends on are shown.
-- **Mistakes come first:** if a number on the board is wrong, the hint points it out
-  and A erases it.
-- **Fallback:** for moves beyond these techniques (Master puzzles), it says so and
-  offers the number. Every puzzle up to Expert can be solved with explained hints
-  alone.
-
-In the hint: A does the step's action, Y goes to the next step, L2 goes back, B
-closes. Opening a hint counts as one hint. Hints work from the numbers on the board, not your notes, so
-they're right even when your notes are incomplete.
-
-**Settings → Number pad** sets where you pick the number. With **Side panel** (the
-default), the pad is the panel's nine number tiles: A starts picking there, and the
-chosen tile is tinted and outlined. Meanwhile the cursor on the board glows softly,
-to show the cell is waiting for its number. **Pop-up** opens a 3x3 pad next to the cell.
-Distraction-free mode has no side panel, so it always uses the pop-up.
-
-In pen mode the pad closes after placing a number. In pencil mode it stays open so
-you can toggle several notes. Hints reveal the selected cell, or the easiest unsolved
-cell if the selected one is already right. Hinted cells lock, and solves with hints
-don't count toward best times.
-
-On a PC keyboard: arrows move, Enter/Space is A, Backspace is B, X and Y are X and Y,
-Q/E are L1/R1, Page Up/Page Down are L2/R2, Tab is Select, Esc is Start, and 1–9 / 0 enter or erase directly.
-
-### Number-first input
-
-With **Settings → Input → Number first**, there's no pad. L1 / R1 choose a number,
-which is highlighted in the side panel and on the board, and A puts it in the cell
-under the cursor, or toggles it as a note in pencil mode. A on a cell that already
-has that number clears it. A on a given picks up the given's number instead. L1 / R1
-skip numbers that are already on the board nine times, and once the chosen number
-is placed nine times, the next number still needed is chosen. An empty cell shows a
-faint preview of what A would put there.
-
-### Distraction-free mode
-
-Choose **Distraction-free** in the pause menu to hide the side panel and center the
-board, with nothing else on screen. **Show side panel** in the same menu brings it
-back, and the choice is remembered. The clock keeps running and shows in the pause
-menu, and an explained hint brings the panel back until you close it.
-
-<img src="screenshots/distraction-free.png" alt="Distraction-free mode: only the board, centered" width="49%">
-
 ## How puzzles are made
 
-Every puzzle has only one solution, so each number can be worked out and there's
-never a point where two different answers would both be right.
+Every puzzle, in every game, has only one solution, so it can always be worked out,
+and there's never a point where two different answers would both be right.
+
+### Sudoku
 
 1. The game fills a complete 9×9 grid at random. That grid is the answer.
 2. It removes clues in mirror-image pairs, which keeps the puzzle symmetric. After
    each pair, the solver checks whether the puzzle could now be completed in any way
    other than the answer. If it could, the pair goes back. So no clue is ever removed
    unless the answer stays the only solution.
-3. The puzzle is graded by the techniques it needs (see Features). If it's too easy
-   for the chosen difficulty, more clues come out, each pair checked the same way. If
-   it's too hard, removed pairs go back one at a time until it isn't. More clues can
-   never allow a second solution. Each difficulty gets several tries, and if none
-   matches exactly, the closest one is used. It too has only one solution.
+3. The puzzle is graded by the techniques it needs (see Sudoku's features). If it's
+   too easy for the chosen difficulty, more clues come out, each pair checked the same
+   way. If it's too hard, removed pairs go back one at a time until it isn't. More
+   clues can never allow a second solution. Each difficulty gets several tries, and if
+   none matches exactly, the closest one is used. It too has only one solution.
 
    Fully dug-out puzzles mostly need either very little or a lot: only about 1 in 40
    needs exactly an X-Wing, Swordfish or XY-Wing. Putting pairs back is what lets
@@ -324,15 +350,15 @@ The daily puzzle always uses Classic, with a random number generator seeded from
 date that gives the same numbers on every device (`src/daily.lua`).
 
 Pack puzzles weren't made by this generator, so the game checks each one for a single
-solution when you start it (see "Puzzle packs"). `./build.sh test` generates puzzles at
-every difficulty with both generators and checks that each has exactly one solution,
-using the other solver to confirm Dancing Links puzzles.
+solution when you start it (see "Puzzle packs").
 
-**Solo and Pairlink** (`src/solo.lua`, `src/pairlink.lua`) are built the other way
-round: from a solution. Each has a solver that only uses the reasoning listed for its
-levels, and every step it takes is sound, so when it solves a puzzle completely, that
-solution is the only one. A puzzle is only offered once that solver has finished it,
-so every puzzle has a solution, and just one.
+### Solo and Pairlink
+
+Solo and Pairlink (`src/solo.lua`, `src/pairlink.lua`) are built the other way round:
+from a solution. Each has a solver that only uses the reasoning listed for its levels,
+and every step it takes is sound, so when it solves a puzzle completely, that solution
+is the only one. A puzzle is only offered once that solver has finished it, so every
+puzzle has a solution, and just one.
 
 - **Solo** makes a random Latin square (each number once per row and column), shades
   random cells that don't touch and keep the rest connected, and gives each shaded
@@ -345,10 +371,13 @@ so every puzzle has a solution, and just one.
   puzzle at the chosen level. A puzzle still left with more than 9 pairs gets a few
   more rounds, and is dropped if that isn't enough.
 
-`./build.sh test` also generates Solo and Pairlink puzzles at every size and level,
-checks each solution against the rules, and counts the solutions of the smaller
-boards (Solo 5×5 and 7×7, Pairlink 7×7) by brute force, independently of the solver,
-to confirm there's exactly one.
+### Tests
+
+`./build.sh test` generates puzzles of every game, at every level and size, and checks
+that each has exactly one solution. Sudoku puzzles are made with both generators, using
+the other solver to confirm Dancing Links puzzles. Solo and Pairlink solutions are
+checked against the rules, and the smaller boards (Solo 5×5 and 7×7, Pairlink 7×7) are
+also counted by brute force, independently of the solver.
 
 ## Development
 
