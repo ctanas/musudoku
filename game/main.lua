@@ -15,7 +15,7 @@ local records = require("src.records")
 local SoloGame = require("src.sologame")
 local PairGame = require("src.pairgame")
 
-local VERSION = "1.3.3"
+local VERSION = "1.4"
 
 local SCENES = {
     title = require("src.scenes.title"),
