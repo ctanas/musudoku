@@ -125,7 +125,7 @@ function M.start(app)
     local readme = {
         function() return 0.3 end,
         function()
-            app.settings.game = "solo"
+            app.titleGame = "solo"
             app.setScene("title")
             return 2.6
         end,
@@ -199,7 +199,7 @@ function M.start(app)
         function() shot("r6_pairlink_chalkboard") end,
         function()
             theme("cyanotype")
-            app.settings.game = "pairlink"
+            app.titleGame = "pairlink"
             app.setScene("title")
             return 2.6
         end,
@@ -231,7 +231,7 @@ function M.start(app)
         function() shot("r9_hoshi_paper") end,
         function()
             theme("cyanotype")
-            app.settings.game = "hoshi"
+            app.titleGame = "hoshi"
             app.setScene("title")
             return 2.8
         end,
@@ -429,13 +429,13 @@ function M.start(app)
         function() return 0.3 end,
         function()
             theme("cyanotype")
-            app.settings.game = "hoshi"
+            app.titleGame = "hoshi"
             app.setScene("title")
             return 2.8
         end,
         function() shot("40_title_hoshi") end,
         function()
-            app.settings.game = "sudoku"
+            app.titleGame = "sudoku"
             app.setScene("title")
             return 2.8
         end,
@@ -518,7 +518,7 @@ function M.start(app)
         function() shot("54_hoshi_solarized_7") end,
         function()
             theme("frankfurt")
-            app.settings.game = "hoshi"
+            app.titleGame = "hoshi"
             app.setScene("title")
             return 2.8
         end,

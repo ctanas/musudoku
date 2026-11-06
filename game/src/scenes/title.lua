@@ -9,22 +9,15 @@ Title.__index = Title
 
 local DIFFICULTY_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
 
--- The games, in order. Each has a box on the left, two by two, showing a
--- small picture of it; the chosen box plays a short demo of its game, and
--- the choice is remembered.
---
--- The D-pad moves where it points. It starts in the menu (up / down); left
--- goes over to the boxes, where it moves from box to box, choosing each
--- one it reaches. Right from the right-hand boxes, A or B goes back to the
--- menu. L1 / R1 change the game from either side.
+-- The games, in order. The box on the left plays a short demo of the current
+-- one, with its name under it. It's Sudoku at every launch; L1 / R1 cycle
+-- through the others, and the choice lasts until the game is closed.
 local GAMES = { { "sudoku", "Sudoku" }, { "solo", "Solo" }, { "pairlink", "Pairlink" }, { "hoshi", "Hoshi" } }
 
-local CELL = 40                 -- a box is three cells across
+local CELL = 72                 -- the box is three cells across
 local BOX = CELL * 3
-local BOXES_X, BOXES_Y = 40, 78 -- the first box's top-left corner
-local GAP_X, GAP_Y = 30, 52     -- between boxes (each name goes under its box)
+local BOX_X, BOX_Y = 64, 128
 local DEMO_TIME = 2.6
-local STILL = 99                -- a moment after every demo has finished
 
 -- Sudoku: givens appear, then the cursor fills the remaining cells, the way
 -- a player would.
@@ -51,21 +44,21 @@ local HOSHI_BRIDGES = { { 1, 3, -1, 0.8 }, { 1, 3, 1, 1.1 }, { 1, 7, 0, 1.45 }, 
 local HOSHI_GROW = 0.18
 
 function Title.new(app)
-    local self = setmetatable({ app = app, t = 0, sel = 1, inBoxes = false }, Title)
+    local self = setmetatable({ app = app, t = 0, sel = 1 }, Title)
     self:build()
     return self
 end
 
 function Title:gameIndex()
     for k, game in ipairs(GAMES) do
-        if game[1] == self.app.settings.game then return k end
+        if game[1] == self.app.titleGame then return k end
     end
     return 1
 end
 
 function Title:build()
     local app = self.app
-    local game = app.settings.game
+    local game = app.titleGame
     self.items = {}
     if game == "sudoku" then
         if app.hasGame() then
@@ -125,52 +118,23 @@ function Title:busy()
     return self.t < DEMO_TIME -- the chosen box's demo plays once
 end
 
-function Title:chooseGame(k)
-    self.app.settings.game = GAMES[k][1]
-    self.app.saveSettings()
+function Title:switchGame(dir)
+    local k = (self:gameIndex() - 1 + dir) % #GAMES + 1
+    self.app.titleGame = GAMES[k][1]
     self.sel, self.t = 1, 0
     self:build()
     sound.play("note")
 end
 
--- The box next to box k in direction a, two by two, or nil at the edge.
-local function boxToward(k, a)
-    local col, row = (k - 1) % 2, math.floor((k - 1) / 2)
-    if a == "left" then col = col - 1
-    elseif a == "right" then col = col + 1
-    elseif a == "up" then row = row - 1
-    else row = row + 1 end
-    if col < 0 or col > 1 or row < 0 or row > 1 then return nil end
-    return row * 2 + col + 1
-end
-
-function Title:setInBoxes(on)
-    self.inBoxes = on
-    sound.play("menu")
-end
-
 function Title:action(a)
     if a == "l1" or a == "r1" then
-        self:chooseGame((self:gameIndex() - 1 + (a == "l1" and -1 or 1)) % #GAMES + 1)
-    elseif self.inBoxes then
-        if a == "a" or a == "b" or a == "start" then
-            self:setInBoxes(false)
-        elseif a == "up" or a == "down" or a == "left" or a == "right" then
-            local k = boxToward(self:gameIndex(), a)
-            if k then
-                self:chooseGame(k)
-            elseif a == "right" then
-                self:setInBoxes(false)
-            end
-        end
+        self:switchGame(a == "l1" and -1 or 1)
     elseif a == "up" then
         self.sel = (self.sel - 2) % #self.items + 1
         sound.play("menu")
     elseif a == "down" then
         self.sel = self.sel % #self.items + 1
         sound.play("menu")
-    elseif a == "left" then
-        self:setInBoxes(true)
     elseif a == "a" or a == "start" then
         sound.play("open")
         self.items[self.sel].run()
@@ -196,7 +160,7 @@ end
 -- (drawn under the grid).
 local function drawFrame(inside, noGrid)
     theme.set("board")
-    ui.rect("fill", bx, by, BOX, BOX, 8)
+    ui.rect("fill", bx, by, BOX, BOX, 10)
     if inside then inside() end
     if not noGrid then
         theme.set("line")
@@ -207,15 +171,15 @@ local function drawFrame(inside, noGrid)
         end
     end
     theme.set("boxLine")
-    love.graphics.setLineWidth(2.5)
-    ui.rect("line", bx, by, BOX, BOX, 8)
+    love.graphics.setLineWidth(3)
+    ui.rect("line", bx, by, BOX, BOX, 10)
 end
 
 local function drawCursorAt(i)
     local x, y = cellXY(i)
     theme.set("mark")
-    love.graphics.setLineWidth(2.5)
-    ui.rect("line", x + 3, y + 3, CELL - 6, CELL - 6, 5)
+    love.graphics.setLineWidth(3)
+    ui.rect("line", x + 3, y + 3, CELL - 6, CELL - 6, 6)
 end
 
 -- A number popping in at time `at` (bigger at first unless `still`).
@@ -273,7 +237,7 @@ local function drawSoloBox(t, cursor)
             local x, y = cellXY(SOLO_SHADE)
             local inset = (1 - shade) * CELL / 2
             theme.set("shade")
-            ui.rect("fill", x + inset, y + inset, CELL - inset * 2, CELL - inset * 2, 3)
+            ui.rect("fill", x + inset, y + inset, CELL - inset * 2, CELL - inset * 2, 4)
         end
     end)
     for i = 1, 9 do
@@ -288,7 +252,7 @@ local function drawSoloBox(t, cursor)
         if t >= keepAt[n] then
             local cx, cy = cellCenter(i)
             theme.set("mark", 0.9 * ui.ease((t - keepAt[n]) / 0.2))
-            love.graphics.setLineWidth(2.5)
+            love.graphics.setLineWidth(3)
             love.graphics.circle("line", cx, cy, CELL * 0.36)
         end
     end
@@ -342,10 +306,10 @@ local function drawPairBox(t, cursor)
                 local pop, q = (t - linkAt) / 0.25, (t - linkAt) / 0.45
                 if pop < 1 then scale = 1 + 0.14 * math.sin(math.pi * pop) end
                 if q < 1 then
-                    local half = CELL / 2 + 2 + 10 * ui.ease(q)
+                    local half = CELL / 2 + 2 + 14 * ui.ease(q)
                     theme.setLine(k, 0.8 * (1 - q) ^ 2)
-                    love.graphics.setLineWidth(2.5)
-                    ui.rect("line", cx - half, cy - half, half * 2, half * 2, 5)
+                    love.graphics.setLineWidth(3)
+                    ui.rect("line", cx - half, cy - half, half * 2, half * 2, 6)
                 end
             end
             local half = (CELL / 2 - 1) * scale
@@ -360,11 +324,17 @@ end
 
 local function drawHoshiBox(t, cursor)
     drawFrame(nil, true)
+    -- water goes once a bridge has reached across it (each bridge joins two
+    -- corners, so the cell it crosses is halfway between them)
+    local crossed = {}
+    for _, b in ipairs(HOSHI_BRIDGES) do
+        if t >= b[4] + HOSHI_GROW / 2 then crossed[(b[1] + b[2]) / 2] = true end
+    end
     theme.set("line")
     for i = 1, 9 do
-        if HOSHI_CLUES[i] == 0 then
+        if HOSHI_CLUES[i] == 0 and not crossed[i] then
             local cx, cy = cellCenter(i)
-            love.graphics.circle("fill", cx, cy, 2)
+            love.graphics.circle("fill", cx, cy, 3)
         end
     end
 
@@ -413,7 +383,7 @@ local function drawHoshiBox(t, cursor)
                 love.graphics.circle("fill", cx, cy, r)
             end
             theme.set(done and "user" or "given", p)
-            love.graphics.setLineWidth(2)
+            love.graphics.setLineWidth(3)
             love.graphics.circle("line", cx, cy, r)
             theme.set("given", p)
             ui.centered(tostring(clue), cx, cy, math.floor(CELL * 0.46), "bold", "center")
@@ -424,38 +394,31 @@ local function drawHoshiBox(t, cursor)
     if cursor and t >= 0.6 and t < 2.1 then
         local cx, cy = cellCenter(t < 1.6 and 1 or 3)
         theme.set("accent")
-        love.graphics.setLineWidth(3)
-        love.graphics.circle("line", cx, cy, r0 + 5)
+        love.graphics.setLineWidth(4)
+        love.graphics.circle("line", cx, cy, r0 + 7)
     end
 end
 
 local DEMOS = { sudoku = drawSudokuBox, solo = drawSoloBox, pairlink = drawPairBox, hoshi = drawHoshiBox }
 
--- The four boxes, two by two, each with its game's name under it. The
--- chosen one plays its demo and is outlined, in the accent color while the
--- D-pad is on the boxes; the others show how theirs end, dimmed.
-function Title:drawBoxes()
+-- The current game's box and name, and a dot per game under them (the
+-- current one in the accent color), so L1 / R1 have somewhere to go.
+function Title:drawBox()
     local current = self:gameIndex()
-    for k, game in ipairs(GAMES) do
-        bx = BOXES_X + ((k - 1) % 2) * (BOX + GAP_X)
-        by = BOXES_Y + math.floor((k - 1) / 2) * (BOX + GAP_Y)
+    bx, by = BOX_X, BOX_Y
+    DEMOS[GAMES[current][1]](self.t, true)
+    local cx = BOX_X + BOX / 2
+    theme.set("text")
+    ui.centered(GAMES[current][2], cx, BOX_Y + BOX + 34, 22, "bold", "center")
+    for k = 1, #GAMES do
         local on = (k == current)
-        DEMOS[game[1]](on and self.t or STILL, on)
-        if on then
-            theme.set(self.inBoxes and "accent" or "muted")
-            love.graphics.setLineWidth(self.inBoxes and 3 or 2)
-            ui.rect("line", bx - 7, by - 7, BOX + 14, BOX + 14, 13)
-        else
-            theme.set("bg", 0.55)
-            ui.rect("fill", bx - 2, by - 2, BOX + 4, BOX + 4, 10)
-        end
-        theme.set(on and "text" or "muted")
-        ui.centered(game[2], bx + BOX / 2, by + BOX + 24, 20, on and "bold" or "regular", "center")
+        theme.set(on and "accent" or "muted", on and 1 or 0.6)
+        love.graphics.circle("fill", cx + (k - (#GAMES + 1) / 2) * 16, BOX_Y + BOX + 66, on and 4 or 3)
     end
 end
 
 function Title:draw()
-    self:drawBoxes()
+    self:drawBox()
 
     local x = 352
     theme.set("text")
@@ -464,7 +427,7 @@ function Title:draw()
     local y, step = 182, 36
     if #self.items <= 7 then y, step = 190, 40 end
     for k, item in ipairs(self.items) do
-        local selected = (k == self.sel) and not self.inBoxes
+        local selected = (k == self.sel)
         local cy = y + (k - 1) * step
         if selected then
             theme.set("accent")
@@ -480,7 +443,7 @@ function Title:draw()
 
     theme.set("muted")
     ui.centered("Version " .. self.app.version, 24, 452, 13, "regular", "left")
-    ui.hints({ { input.pair("l1"), "Game" }, { "A", self.inBoxes and "Choose" or "Select" } }, 696, 452, "right")
+    ui.hints({ { input.pair("l1"), "Game" }, { "A", "Select" } }, 696, 452, "right")
 end
 
 return Title

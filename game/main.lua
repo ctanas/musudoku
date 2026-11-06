@@ -52,6 +52,7 @@ local app = {
     puzzleStats = {},   -- their statistics, by kind, then size and level
     puzzleDirty = {},   -- [kind] = true when its puzzle needs saving
     lastChoice = {},    -- [kind] = { size, difficulty } last started
+    titleGame = "sudoku", -- the title screen's game: Sudoku at every launch
 }
 _G.app = app
 

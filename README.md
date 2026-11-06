@@ -1,12 +1,12 @@
 # muSudoku
 
 Four logic puzzles for handhelds, built with LÖVE 11.5: **Sudoku**, **Solo**,
-**Pairlink** and **Hoshi**. The title screen shows a box for each; pick one with L1 / R1,
-or press left and move between the boxes with the D-pad. It runs on
+**Pairlink** and **Hoshi**. The title screen opens on Sudoku, and L1 / R1 switch to the
+other games. It runs on
 MustardOS, and on other handheld systems through PortMaster. Designed for the Anbernic
 RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
-<img src="screenshots/title.png" alt="Title screen: a box for each of the four games on the left, with Sudoku chosen" width="49%"> <img src="screenshots/play.png" alt="Sudoku: a Hard puzzle with pencil notes" width="49%">
+<img src="screenshots/title.png" alt="Title screen: a Sudoku box on the left, with the menu beside it" width="49%"> <img src="screenshots/play.png" alt="Sudoku: a Hard puzzle with pencil notes" width="49%">
 <img src="screenshots/hint.png" alt="Sudoku: an explained hint, a naked pair, with the notes it rules out crossed off" width="49%"> <img src="screenshots/solo.png" alt="Solo: a 7×7 Medium puzzle part way through, black shaded cells with rings on the cells kept beside them, and the numbers that still repeat tinted" width="49%">
 <img src="screenshots/pairlink.png" alt="Pairlink: an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%"> <img src="screenshots/hoshi.png" alt="Hoshi: a 9×9 Medium puzzle part way through, with a bridge being drawn from an island" width="49%">
 
@@ -65,8 +65,7 @@ runtime that PortMaster already includes.
 
 | Button | What it does |
 |---|---|
-| L1 / R1 on the title screen | Pick a game: Sudoku, Solo, Pairlink or Hoshi |
-| Left on the title screen | Move to the game boxes: the D-pad picks one, A (or right from the right-hand boxes) goes back to the menu |
+| L1 / R1 on the title screen | Switch games: Sudoku, Solo, Pairlink, Hoshi and round again. The title opens on Sudoku |
 | Start / Menu | Pause menu |
 | Menu + Start | Save and quit |
 
@@ -494,7 +493,7 @@ are off. Turning sound on later loads them then.
 `MUSUDOKU_FXSHOTS=1 love game` captures the completion effects mid-animation.
 
 `MUSUDOKU_GAMESHOTS=1 love game` plays through the Solo, Pairlink and Hoshi screens
-(the title's game boxes, new puzzle, play, a link effect, drawing bridges, pause, wins
+(the title with each game, new puzzle, play, a link effect, drawing bridges, pause, wins
 and statistics, in several themes) and saves screenshots named `g*.png`.
 `MUSUDOKU_GAMESHOTS=hoshi` takes only Hoshi's.
 
