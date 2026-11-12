@@ -89,7 +89,7 @@ function Title:build()
         self.items[#self.items + 1] = { label = "New puzzle", run = function() app.push("choose", game) end }
         self.items[#self.items + 1] = { label = "Statistics", run = function() app.push("stats", info.name) end }
     end
-    self.items[#self.items + 1] = { label = "Settings", run = function() app.push("settings") end }
+    self.items[#self.items + 1] = { label = "Settings", run = function() app.push("settings", game) end }
     self.items[#self.items + 1] = { label = "About", run = function() app.push("about") end }
     self.items[#self.items + 1] = { label = "Quit", run = function() app.quit() end }
     self.sel = math.min(self.sel, #self.items)

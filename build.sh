@@ -5,6 +5,7 @@
 #   ./build.sh love     build a .love file for testing on a PC -> build/muSudoku.love
 #   ./build.sh portmaster  build the PortMaster port -> build/portmaster/, build/musudoku.zip
 #   ./build.sh test     run the engine and puzzle pack tests (needs luajit)
+#   ./build.sh scenetest  check the screens in the running game (needs love 11.5)
 #   ./build.sh run      run the game on this PC (needs love 11.5)
 #
 # The muxapp bundles an aarch64 LÖVE 11.5 runtime (bin/love + bin/libs.aarch64).
@@ -140,5 +141,9 @@ case "${1:-muos}" in
         export MUSUDOKU_PACKS="${MUSUDOKU_PACKS:-$ROOT/packs}"
         cd "$ROOT" && "$LOVE_BIN" game "$@"
         ;;
-    *) echo "Usage: ./build.sh [muos|love|portmaster|test|run]"; exit 1 ;;
+    scenetest)
+        LOVE_BIN="$(find_love)"
+        cd "$ROOT" && MUSUDOKU_SCENETEST=1 "$LOVE_BIN" game
+        ;;
+    *) echo "Usage: ./build.sh [muos|love|portmaster|test|scenetest|run]"; exit 1 ;;
 esac

@@ -23,6 +23,7 @@ local PAD_H = PAD_W
 local FLASH_TIME = 0.7   -- one cell's flash
 local RING_TIME = 0.65   -- glow pulse around a completed area
 local GLOW_PERIOD = 1.6  -- one breath of the cursor glow while picking in the panel
+local GLOW_BREATHS = 5   -- then it stays lit, so a pad left open doesn't keep drawing
 local GLOW_FPS = 20      -- the glow is redrawn this often, not every frame
 local LIFT = 0.16        -- how far digits bounce during a flash
 local WIN_CARD_AT = 1.7  -- seconds after solving before the result card
@@ -68,10 +69,14 @@ end
 
 -- While the number is picked in the side panel, the cursor's cell waits for
 -- it and glows, breathing slowly, so it's clear the board expects an entry
--- from the right. Returns 0 when not picking there, else 0.4 to 1.
+-- from the right. After a few breaths it stays fully lit (where a breath
+-- ends), and the screen can go idle. Returns 0 when not picking there, else
+-- 0.4 to 1.
 function Play:cursorGlow()
     if not (self.pad and self:padInPanel()) then return 0 end
-    return 0.7 + 0.3 * math.cos(2 * math.pi * (self.t - self.pad.t) / GLOW_PERIOD)
+    local age = self.t - self.pad.t
+    if age >= GLOW_BREATHS * GLOW_PERIOD then return 1 end
+    return 0.7 + 0.3 * math.cos(2 * math.pi * age / GLOW_PERIOD)
 end
 
 function Play:layout()
@@ -310,7 +315,8 @@ end
 
 function Play:history(which)
     local g = self.game
-    local cell = (which == "undo") and g:undo() or g:redo()
+    local cell
+    if which == "undo" then cell = g:undo() else cell = g:redo() end
     if cell then
         g.cursor = cell
         sound.play("erase")
@@ -517,11 +523,13 @@ function Play:update(dt)
     if self.shake > 0 then self.shake = math.max(0, self.shake - dt) end
 
     -- a slow breath needs few frames: ask for GLOW_FPS rather than being
-    -- busy() at the full frame rate
-    if self:cursorGlow() > 0 then
+    -- busy() at the full frame rate, and for none once it stays lit
+    local glow = self:cursorGlow()
+    if glow > 0 and glow ~= self.glowDrawn then
         local step = math.floor(self.t * GLOW_FPS)
         if step ~= self.glowStep then
             self.glowStep = step
+            self.glowDrawn = glow
             self.app.requestRedraw()
         end
     end

@@ -8,7 +8,10 @@ Generating.__index = Generating
 
 local NAMES = { easy = "an easy", medium = "a medium", hard = "a hard", expert = "an expert", master = "a master" }
 local LEVEL_NAMES = { easy = "Easy", medium = "Medium", hard = "Hard", expert = "Expert", master = "Master" }
-local FRAME_BUDGET = 0.010 -- seconds of generator work per frame
+-- Seconds of generator work per frame. The picture only changes nine times a
+-- second, so most of the time goes to the generator rather than to drawing
+-- and waiting for the screen: the puzzle is ready sooner, with fewer frames.
+local FRAME_BUDGET = 0.03
 local MIN_SHOWN = 0.45     -- keep the screen up briefly so it doesn't flicker
 
 -- opts.daily: today's puzzle (from daily.today()), built from the date with the

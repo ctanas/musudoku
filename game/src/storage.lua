@@ -103,6 +103,7 @@ storage.DEFAULT_SETTINGS = {
     largeNotes = false,
     timer = true,
     sound = true,
+    audioPause = true, -- pause the sound device after a while of silence (sound.lua)
     hints = "off", -- "off" | "explained" | "instant"
     boardOnly = false, -- distraction-free: just the board, centered
     generator = "classic", -- "classic" | "dlx" (Dancing Links)

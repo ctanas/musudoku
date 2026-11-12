@@ -10,7 +10,11 @@ local input = require("src.input")
 local Pack = {}
 Pack.__index = Pack
 
-local FRAME_BUDGET = 0.012
+-- Seconds of reading per frame. The bar only has to creep along, so most of
+-- the time goes to reading rather than drawing.
+local FRAME_BUDGET = 0.03
+
+local MODES = { "next", "random", "choose" }
 
 function Pack.new(app, file, autoNext)
     local self = setmetatable({ app = app, t = 0, file = file, autoNext = autoNext, sel = 1, fraction = 0 }, Pack)
@@ -60,9 +64,12 @@ end
 -- Try to start a puzzle; skip forward past broken ones for next/random.
 function Pack:start(mode)
     local app, p, count = self.app, self:progress(), self.index.count
+    -- love.math.random is seeded at launch; math.random would pick the same
+    -- puzzles after every launch
+    local random = love.math.random
     local n
     if mode == "choose" then n = self.choice
-    elseif mode == "random" then n = packs.randomUnsolved(p, count)
+    elseif mode == "random" then n = packs.randomUnsolved(p, count, random)
     else n = packs.nextUnsolved(p, count) end
     if not n then
         self.message = "Every puzzle in this pack is solved."
@@ -77,7 +84,7 @@ function Pack:start(mode)
             return
         end
         self.message = err
-        n = (mode == "random") and packs.randomUnsolved(p, count) or packs.nextUnsolved(p, count, n)
+        n = (mode == "random") and packs.randomUnsolved(p, count, random) or packs.nextUnsolved(p, count, n)
         if not n then return end
     end
 end
@@ -129,7 +136,20 @@ function Pack:action(a)
     elseif a == "a" then
         sound.play("open")
         self.message = nil
-        self:start(({ "next", "random", "choose" })[self.sel])
+        local mode = MODES[self.sel]
+        -- ask before replacing a puzzle in progress, as New puzzle and Daily
+        -- puzzle do (unless there's nothing left here to start)
+        local some = mode == "choose" or packs.nextUnsolved(self:progress(), count) ~= nil
+        if self.app.hasGame() and some then
+            self.app.push("confirm", {
+                title = "Start this puzzle?",
+                body = "The puzzle in progress will be replaced.",
+                yes = "Start",
+                onYes = function() self:start(mode) end,
+            })
+        else
+            self:start(mode)
+        end
     end
 end
 

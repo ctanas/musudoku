@@ -10,7 +10,7 @@ local SHADE, DOT = SoloGame.SHADE, SoloGame.DOT
 -- The Solo play screen. boardscene.lua does the layout, cursor, pausing and
 -- celebrating; this adds shading, dots and the side panel. Shaded cells are
 -- black and hide their number; holding Y shows them. Numbers that still
--- repeat in their row or column are tinted (Settings → Show repeats in Solo).
+-- repeat in their row or column are tinted (Solo's Settings → Show repeats).
 local SoloPlay = Board.extend({})
 
 local RULES = {

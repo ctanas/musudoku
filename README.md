@@ -33,9 +33,9 @@ RG34XXSP's 720×480 screen and scaled to fit other resolutions.
   Solarized Light. Dark: Cyanotype (default), Solarized Dark, Nord, Gruvbox, and
   Chalkboard (green slate with chalk dust and a wooden frame around the board)
 - Sound effects generated in code, so no audio files are needed
-- Battery friendly: the screen is only redrawn when something changes, and with
-  sound effects off the audio system isn't started at all (see "Idle rendering"
-  below)
+- Battery friendly: the screen is only redrawn when something changes, the sound
+  hardware rests after 10 seconds of silence, and with sound effects off the audio
+  system isn't started at all (see "Idle rendering" below)
 
 <img src="screenshots/themes.png" alt="All nine themes. Top row: Cyanotype, Paper, Sakura. Middle: Frankfurt, Solarized Light, Solarized Dark. Bottom: Nord, Gruvbox, Chalkboard" width="100%">
 
@@ -75,6 +75,14 @@ game, as before version 1.3.3: L1 / R1 then undo and redo (and turn pages and st
 through hints), and L2 / R2 do what L1 / R1 did. The on-screen button hints follow the
 setting.
 
+**Settings** lists the settings every game shares (theme, shoulder buttons, timer and
+sound) and those of the game it's opened from: the one on the title screen, or the one
+that's paused. Sudoku's settings are under Sudoku, and Solo's under Solo.
+
+In a dialog that asks a question (replace the puzzle in progress, restart, reset
+statistics), A answers yes and B cancels. Start does nothing there, so pressing it
+again after starting a new puzzle can't answer by accident.
+
 On a PC keyboard: arrows move, Enter/Space is A, Backspace is B, X and Y are X and Y,
 Q/E are L1/R1, Page Up/Page Down are L2/R2, Tab is Select, Esc is Start, and in Sudoku
 1–9 / 0 enter or erase directly.
@@ -112,8 +120,9 @@ Fill the 9×9 grid so every row, column and 3×3 box holds the numbers 1 to 9.
 - Completing a row, column, box or all nine of a number makes the digits bounce in a
   ripple with a glow pulse
 - Statistics per difficulty: started, solved, perfect (no hints, no mistakes), best
-  and average time. A Streaks page shows puzzles solved in a row per difficulty
-  (starting a new one before finishing the current one ends it) and the daily streak
+  and average time, and the current and longest streak of puzzles solved in a row
+  (starting a new one before finishing the current one ends it). A Daily row has the
+  days solved and the daily streak
 - Daily puzzle: one puzzle a day, the same for everyone, with a streak for days solved
   in a row (see "Daily puzzle" below)
 - Puzzle packs: play collections of puzzles published by others, with progress, best
@@ -269,8 +278,8 @@ solved.
 
 Shaded cells turn black and hide their number; hold Y to see them while it's held.
 A number that still repeats in its row or column is tinted a soft red, and goes back
-to normal once its repeats are shaded (turn this off in **Settings → Show repeats in
-Solo**). The side panel counts the rows and columns that
+to normal once its repeats are shaded (turn this off in Solo's **Settings → Show
+repeats**). The side panel counts the rows and columns that
 still have a repeat. With Highlight
 matching numbers on, the cursor's row and column light up, with its number's repeats
 picked out.
@@ -447,6 +456,7 @@ for building.
 ./build.sh run            # play on a PC (720x480 window)
 ./build.sh run 640x480    # try another resolution
 ./build.sh test           # engine, puzzle pack, hint, Solo, Pairlink and Hoshi tests (luajit)
+./build.sh scenetest      # the screens, checked in the running game (see "Scene test")
 ./build.sh love           # build/muSudoku.love
 ./build.sh                # build/muSudoku_vX.Y.muxapp
 ./build.sh portmaster     # build/portmaster/musudoku/ and build/musudoku.zip
@@ -471,14 +481,26 @@ screenshots to the LÖVE save folder (`~/.local/share/love/musudoku/shots/` on
 Linux). Use it to check layout changes. With no display, prefix it with
 `xvfb-run -a` and set `SDL_AUDIODRIVER=dummy`.
 
+### Scene test
+
+`./build.sh scenetest` (or `MUSUDOKU_SCENETEST=1 love game`) plays through the
+screens' behaviour that the luajit tests can't reach, and prints PASS or FAIL for
+each check: undo and redo at the ends of their history, what the pause menu and
+Settings offer for each game, that dialogs ask before a puzzle is replaced, that an
+animation's last frame is drawn, how many frames an idle screen draws, and the
+audio device's pause, resume and recovery. It exits with 1 if a check fails. It uses
+a save folder of its own (`musudoku-scenetest`), so your saves and settings are left
+alone. With no display, prefix it with `xvfb-run -a`.
+
 ### Idle rendering
 
 `main.lua` replaces LÖVE's default loop, which redraws 60 times a second, with one
 that draws only when needed:
 
-- after any button press, plus 0.1 s to be safe
+- after any button press: what it changed is drawn at once, and once more at rest
 - while the top screen's `busy()` returns true (cursor sliding, the pad and menus
-  opening, flashes, the win wave, puzzle generation, reading a pack)
+  opening, flashes, the win wave, puzzle generation, reading a pack), and for two
+  more frames once it ends, so the last thing drawn is the finished picture
 - when a screen calls `app.requestRedraw()`, which the timer does once a second
 
 In between it sleeps, checking for input 60 times a second, or 30 once nothing has
@@ -486,9 +508,38 @@ been pressed for 2 seconds. Analog-stick drift doesn't wake it. Every animation
 relies on `busy()`: when adding one, make the screen's `busy()` return true while it
 runs, or it will freeze mid-way.
 
+Frames are at least 1/65 s apart, so an animation isn't drawn faster than it needs
+where vsync doesn't hold the loop back. The cursor's glow while a number is picked
+in the side panel breathes five times and then stays lit, so a pad left open stops
+drawing. While a puzzle is generated, most of each frame's time goes to the
+generator.
+
 The audio mixer runs all the time once started, even when silent, so `conf.lua`
 reads the saved settings first and leaves the audio modules out when sound effects
 are off. Turning sound on later loads them then.
+
+With sound on, `sound.lua` pauses the audio device after 10 seconds of silence and
+resumes it for the next sound, so the mixer and the sound hardware rest while you
+think. LÖVE has no call for that: it's OpenAL Soft's `ALC_SOFT_pause_device`
+extension, reached through LuaJIT's FFI. Every system has its own OpenAL and sound
+driver, and on some a paused device doesn't come back by itself (OpenAL Soft 1.20
+and later on an ALSA device without mmap access, such as ALSA's PulseAudio plugin).
+So it's guarded:
+
+- Without the FFI, OpenAL Soft or the extension, nothing is paused.
+- The first pause of a session is a trial, in silence: the device is paused and
+  resumed at once, and a silent sound is played and watched for a second. Only if
+  it moves is the device paused for real from then on.
+- The sound that resumes the device starts 60 ms later, so hardware that takes a
+  moment to come back doesn't swallow it, and it's watched in the same way.
+- If a watched sound hasn't moved, the device didn't come back: it's resumed again
+  and reset, which does restart it, and **Audio power saving** turns itself off and
+  stays off on that system.
+- **Settings → Audio power saving** turns it off by hand, for hardware that pops
+  when its sound stream starts.
+
+LÖVE's own audio thread can't be stopped, so this takes away about a third of the
+audio's wake-ups, not all of them; only Sound effects off does that.
 
 `MUSUDOKU_FXSHOTS=1 love game` captures the completion effects mid-animation.
 
@@ -499,7 +550,8 @@ and statistics, in several themes) and saves screenshots named `g*.png`.
 
 `MUSUDOKU_IDLETEST=1 love game` measures it. On a PC, a puzzle left alone for 10 seconds
 drew 10 frames (one per timer tick) instead of about 600, and none with the timer
-hidden. A button press draws about 7 frames.
+hidden. A press that starts no animation draws 2 frames, and a cursor move about 15
+(its slide).
 
 ### Project layout
 
@@ -536,7 +588,7 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
   src/input.lua      Gamepad and keyboard mapping, hold-to-repeat
   src/theme.lua      Color themes, chalk dust texture, wooden frame, Solo's
                      shading and Pairlink's line colours
-  src/sound.lua      Synthesized sound effects
+  src/sound.lua      Synthesized sound effects, and the audio device's idle pause
   src/scenes/        Title, difficulty, generating, play, pause, win,
                      settings, statistics, confirm, packs, pack and about
                      screens, and for Solo, Pairlink and Hoshi: choose (size
@@ -547,6 +599,7 @@ game/                The LÖVE game (becomes .game/ in the muxapp)
   dev/idletest.lua   Measures frames drawn while idle (left out of builds)
   dev/fxshots.lua    Screenshots of the completion effects (left out of builds)
   dev/hintshots.lua  Screenshots of explained hints (left out of builds)
+  dev/scenetest.lua  Checks the screens in the running game (left out of builds)
 ```
 
 ### The LÖVE runtime

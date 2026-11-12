@@ -104,6 +104,203 @@ local DEFS = {
 -- when silent), so they're loaded here if sound is turned on later.
 local loaded = false
 
+-- The audio device while nothing plays --------------------------------------
+-- For as long as the device is open, OpenAL's mixer keeps waking the CPU and
+-- the sound hardware stays on, even in silence. A puzzle is mostly silence,
+-- so after sound.idleAfter seconds without one the device is paused, and the
+-- next sound resumes it. LÖVE has no call for this: it's OpenAL Soft's
+-- ALC_SOFT_pause_device extension, reached through LuaJIT's FFI. Where the
+-- FFI, the library or the extension isn't there, the device just stays open.
+-- (LÖVE's own audio thread can't be stopped, and keeps ticking either way.)
+--
+-- The game runs on many systems, each with its own OpenAL and sound driver,
+-- and on some a paused device doesn't come back by itself (OpenAL Soft 1.20
+-- and later, on an ALSA device without mmap access: its mixer never restarts
+-- the stream it dropped). So this takes nothing on trust:
+--   * The first pause of a session is a trial, in silence: the device is
+--     paused, resumed at once, and a silent sound is played and watched. Only
+--     if that sound moves is the device paused for real from then on.
+--   * The sound that resumes the device waits LEAD_IN seconds, so hardware
+--     that takes a moment to come back doesn't swallow its start, and it is
+--     watched in the same way.
+--   * A watched sound that hasn't moved after WATCH_AFTER seconds means the
+--     device didn't come back: it's resumed again and reset (which does
+--     restart it), pausing is turned off, and sound.onStall() is called so
+--     the setting is saved off and it never happens on that system again.
+--   * Settings → Audio power saving turns it off by hand (for hardware that
+--     pops when its sound stream starts).
+
+sound.idlePause = true -- the setting; see sound.setIdlePause
+sound.idleAfter = 10   -- seconds of silence before the device is paused
+sound.onStall = nil    -- called when a resumed device turned out stuck
+local LEAD_IN = 0.06
+-- Long enough for a sound server that takes its time waking its output: a
+-- false alarm would turn the setting off where it works.
+local WATCH_AFTER = 1.0
+local PROBE_RATE, PROBE_SECONDS = 8000, 3 -- the trial's silent sound
+
+local device          -- nil: not looked for yet; false: it can't be paused
+local paused = false
+local lastPlay = 0    -- when a sound was last asked for
+local held, holdUntil = nil, 0 -- the sound waiting out the lead-in
+local verify = false  -- the next sound started is the first since a resume
+local watch           -- { src, at, trial }: a sound to look at, and when
+local tried = false   -- the trial has been run
+local probe           -- its silent sound
+
+local function findDevice()
+    device = false
+    pcall(function()
+        local ffi = require("ffi")
+        ffi.cdef([[
+            typedef struct ALCdevice_struct ALCdevice;
+            typedef struct ALCcontext_struct ALCcontext;
+            ALCcontext *alcGetCurrentContext(void);
+            ALCdevice *alcGetContextsDevice(ALCcontext *context);
+            char alcIsExtensionPresent(ALCdevice *device, const char *extname);
+            void alcDevicePauseSOFT(ALCdevice *device);
+            void alcDeviceResumeSOFT(ALCdevice *device);
+            char alcResetDeviceSOFT(ALCdevice *device, const int *attribs);
+        ]])
+        -- the library LÖVE itself uses: already loaded on Linux and macOS,
+        -- by name on Windows
+        local lib
+        for _, name in ipairs({ false, "OpenAL32" }) do
+            local ok, found = pcall(function()
+                local l = name and ffi.load(name) or ffi.C
+                return l.alcDevicePauseSOFT and l.alcDeviceResumeSOFT and l
+            end)
+            if ok and found then
+                lib = found
+                break
+            end
+        end
+        if not lib then return end
+        local context = lib.alcGetCurrentContext()
+        if context == nil then return end
+        local dev = lib.alcGetContextsDevice(context)
+        if dev == nil or lib.alcIsExtensionPresent(dev, "ALC_SOFT_pause_device") == 0 then return end
+        device = {
+            pause = function() lib.alcDevicePauseSOFT(dev) end,
+            resume = function() lib.alcDeviceResumeSOFT(dev) end,
+        }
+        -- a full restart of the device, for when resuming wasn't enough
+        -- (older OpenAL Soft doesn't have it)
+        if pcall(function() return lib.alcResetDeviceSOFT end) then
+            device.reset = function() lib.alcResetDeviceSOFT(dev, nil) end
+        end
+    end)
+end
+
+local function resumeDevice()
+    paused = false
+    if not sound.failResume then pcall(device.resume) end -- failResume: for dev/scenetest.lua
+end
+
+-- The trial: pause, resume, and play a silent sound to watch. False if it
+-- couldn't be set up (then the device is simply paused, and the first sound
+-- to resume it is the one watched).
+local function tryOut(now)
+    local ok = pcall(function()
+        if not probe then
+            local data = love.sound.newSoundData(PROBE_RATE * PROBE_SECONDS, PROBE_RATE, 16, 1)
+            probe = love.audio.newSource(data, "static")
+        end
+        device.pause()
+        resumeDevice()
+        probe:stop()
+        probe:play()
+    end)
+    if ok then watch = { src = probe, at = now + WATCH_AFTER, trial = true } end
+    return ok
+end
+
+-- The device didn't come back from a pause: bring it back by every means,
+-- and don't pause it again.
+local function recover()
+    watch = nil
+    pcall(device.resume)
+    if device.reset then pcall(device.reset) end
+    sound.idlePause = false
+    if sound.onStall then sound.onStall() end
+end
+
+-- Starts a sound now.
+local function start(name)
+    local src = sources[name]
+    if not (src and sound.enabled) then return end
+    local function play()
+        local s = src
+        if src:isPlaying() then s = src:clone() end
+        s:play()
+        return s, s:isPlaying()
+    end
+    local ok, playing, started = pcall(play)
+    if not ok then return end
+    if verify then
+        verify = false
+        if started then
+            watch = { src = playing, at = love.timer.getTime() + WATCH_AFTER }
+        else
+            -- a device that failed to restart drops every sound at once
+            recover()
+            pcall(play)
+        end
+    elseif watch and watch.src == playing then
+        watch.at = love.timer.getTime() + WATCH_AFTER -- started over: look later
+    end
+end
+
+-- WATCH_AFTER seconds after the first sound since a resume: if it's still
+-- "playing" but hasn't moved, nothing is mixing.
+local function checkWatch()
+    local src, trial = watch.src, watch.trial
+    watch = nil
+    local ok, stuck = pcall(function()
+        return src:isPlaying() and src:tell("samples") == 0
+    end)
+    if trial then pcall(function() src:stop() end) end
+    if ok and stuck then recover() end
+end
+
+-- Called every pass of the main loop.
+function sound.update()
+    if not (loaded and love.audio) then return end
+    local now = love.timer.getTime()
+    if held and now >= holdUntil then
+        local name = held
+        held = nil
+        start(name)
+    end
+    if watch and now >= watch.at then checkWatch() end
+
+    if paused or not sound.idlePause or device == false then return end
+    if now - lastPlay < sound.idleAfter or held or watch then return end
+    if device == nil then findDevice() end
+    if not device then return end
+    local ok, playing = pcall(love.audio.getActiveSourceCount)
+    if not ok or playing > 0 then return end
+    if not tried then
+        tried = true
+        if tryOut(now) then return end -- paused for real once the trial has passed
+    end
+    paused = pcall(device.pause)
+end
+
+-- Settings → Audio power saving. Turning it off wakes a paused device.
+function sound.setIdlePause(on)
+    sound.idlePause = on and true or false
+    if not on and paused then resumeDevice() end
+end
+
+-- "paused", "running", "unavailable" (it can't be paused here) or "unknown"
+-- (not looked for yet). For the development tests.
+function sound.deviceState()
+    if paused then return "paused" end
+    if device == nil then return "unknown" end
+    return device and "running" or "unavailable"
+end
+
 function sound.load()
     if loaded then return end
     loaded = true
@@ -115,19 +312,24 @@ function sound.load()
         end
     end)
     if not ok then sources = {} end
+    lastPlay = love.timer.getTime()
 end
 
 function sound.play(name)
     if not sound.enabled then return end
-    local src = sources[name]
-    if not src then return end
-    pcall(function()
-        if src:isPlaying() then
-            src:clone():play()
-        else
-            src:play()
-        end
-    end)
+    if not sources[name] then return end
+    local now = love.timer.getTime()
+    lastPlay = now
+    if paused then
+        resumeDevice()
+        holdUntil = now + LEAD_IN
+        verify = true
+    end
+    if now < holdUntil then
+        held = name -- only the latest sound waits; an earlier one is dropped
+        return
+    end
+    start(name)
 end
 
 return sound

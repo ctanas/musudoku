@@ -80,7 +80,8 @@ end
 
 function Board:history(which)
     local g = self.game
-    local cell = (which == "undo") and g:undo() or g:redo()
+    local cell
+    if which == "undo" then cell = g:undo() else cell = g:redo() end
     if not cell then return self:blocked() end
     g.cursor = cell
     sound.play("erase")

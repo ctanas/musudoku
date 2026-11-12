@@ -3,8 +3,13 @@ local theme = require("src.theme")
 local sound = require("src.sound")
 
 -- A yes/no dialog. opts: title, body, yes (button label), onYes.
--- With opts.info it's a message with one button: A or B closes it, then
--- runs onYes if given.
+-- With opts.info it's a message with one button: A, B or Start closes it,
+-- then runs onYes if given.
+--
+-- Start does nothing in a yes/no dialog. It starts things on the screens
+-- these dialogs come from (the title, New puzzle), so it mustn't cancel
+-- here, and a question about replacing or clearing something shouldn't be
+-- answered by pressing Start once more either.
 local Confirm = { overlay = true }
 Confirm.__index = Confirm
 
@@ -31,7 +36,7 @@ function Confirm:action(a)
         sound.play("open")
         self.app.pop()
         if self.opts.onYes then self.opts.onYes() end
-    elseif a == "b" or a == "start" then
+    elseif a == "b" then
         sound.play("close")
         self.app.pop()
     end

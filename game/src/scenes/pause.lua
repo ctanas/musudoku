@@ -11,6 +11,14 @@ local WORK = { solo = "Your shading, dots", pairlink = "Your lines", hoshi = "Yo
 -- `kind` ("solo", "pairlink" or "hoshi") pauses that game; without it, Sudoku.
 function Pause.new(app, kind)
     local self = setmetatable({ app = app, t = 0, sel = 1, kind = kind }, Pause)
+    self:build()
+    return self
+end
+
+-- The menu's items. They follow the settings (Check board is only there with
+-- mistake checking off), so they're built again when Settings closes.
+function Pause:build()
+    local app, kind = self.app, self.kind
     if kind then
         self.items = {
             { label = "Resume", run = function() self:resumeGame() end },
@@ -27,13 +35,13 @@ function Pause.new(app, kind)
                 })
             end },
             { label = "New puzzle", run = function() app.push("choose", kind) end },
-            { label = "Settings", run = function() app.push("settings") end },
+            { label = "Settings", run = function() app.push("settings", kind) end },
             { label = "Exit to title", run = function()
                 app.savePuzzle(kind)
                 app.setScene("title")
             end },
         }
-        return self
+        return
     end
     self.items = {
         { label = "Resume", run = function() self:resumeGame() end },
@@ -56,7 +64,7 @@ function Pause.new(app, kind)
             })
         end },
         { label = "New puzzle", run = function() app.push("difficulty") end },
-        { label = "Settings", run = function() app.push("settings") end },
+        { label = "Settings", run = function() app.push("settings", "sudoku") end },
         { label = "Exit to title", run = function()
             app.saveGame()
             app.setScene("title")
@@ -64,7 +72,16 @@ function Pause.new(app, kind)
     }
     -- With mistake checking on, wrong numbers are already red.
     if app.settings.mistakes then table.remove(self.items, 3) end
-    return self
+end
+
+-- Back from Settings or a dialog: the same item stays selected.
+function Pause:resume()
+    local label = self.items[self.sel].label
+    self:build()
+    self.sel = math.min(self.sel, #self.items)
+    for k, item in ipairs(self.items) do
+        if item.label == label then self.sel = k end
+    end
 end
 
 -- Tells how many placed numbers are wrong, not which. Costs a hint.

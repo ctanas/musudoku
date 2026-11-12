@@ -75,7 +75,7 @@ function M.start(app)
         end,
         function() press("start") return 0.4 end,
         function() shot("08_pause") end,
-        function() press("down", "down", "down", "a") return 0.4 end,
+        function() press("down", "down", "down", "down", "a") return 0.4 end,
         function() shot("09_settings") end,
         function() press("b") return 0.2 end,
         function() press("b") return 0.4 end,
@@ -95,17 +95,14 @@ function M.start(app)
         function() shot("10_win_wave") return 1.4 end,
         function() shot("11_win") end,
         function() press("b") return 0.4 end,
-        function() app.push("stats") return 0.4 end,
-        function() shot("12_stats") end,
         function()
             app.stats.medium.streak, app.stats.medium.bestStreak = 4, 6
-            press("r2")
-            return 0.3
+            app.push("stats")
+            return 0.4
         end,
-        function() shot("12b_stats_streaks") end,
-        function() press("r2") return 0.3 end,
+        function() shot("12_stats") end,
+        function() press("l2") return 0.3 end, -- round to the last page
         function() shot("12c_stats_recent") end,
-        function() press("r2") return 0.2 end,
         function() press("b") return 0.3 end,
         function()
             app.settings.theme = "paper"
@@ -174,7 +171,7 @@ function M.start(app)
             app.settings.input = "cell"
             app.push("settings")
             local s = app.top()
-            s.sel = 10 -- the last row
+            s.sel = 9 -- Hints, past the first eight rows
             s:scrollToSelection()
             return 0.3
         end,

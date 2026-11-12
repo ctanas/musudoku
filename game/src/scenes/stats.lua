@@ -6,9 +6,10 @@ local history = require("src.history")
 local daily = require("src.daily")
 local input = require("src.input")
 
--- Statistics, in pages: Sudoku's per-difficulty numbers and streaks, Solo's,
--- Pairlink's and Hoshi's per size and level, and recent solves of every kind.
--- L2 / R2 (see input.lua) or left / right switch pages.
+-- Statistics, a page per game: Sudoku's numbers and streaks per difficulty
+-- (and the daily puzzle's), Solo's, Pairlink's and Hoshi's per size and
+-- level, and recent solves of every kind. L2 / R2 (see input.lua) or left /
+-- right switch pages.
 local Stats = {}
 Stats.__index = Stats
 
@@ -21,11 +22,13 @@ local LEVELS = {
 }
 
 local COLUMNS = {
-    { label = "Started", x = 270 },
-    { label = "Solved", x = 362 },
-    { label = "Perfect", x = 454 },
-    { label = "Best", x = 556 },
-    { label = "Average", x = 656 },
+    { label = "Started", x = 222 },
+    { label = "Solved", x = 290 },
+    { label = "Perfect", x = 358 },
+    { label = "Best", x = 436 },
+    { label = "Average", x = 520 },
+    { label = "Streak", x = 588 },
+    { label = "Longest", x = 656 },
 }
 
 -- Solo, Pairlink and Hoshi pages: a row per size and level
@@ -40,7 +43,7 @@ local GAME_COLUMNS = {
 }
 local GAME_PAGES = { Solo = "solo", Pairlink = "pairlink", Hoshi = "hoshi" }
 
-local PAGES = { "Sudoku", "Streaks", "Solo", "Pairlink", "Hoshi", "Recent" }
+local PAGES = { "Sudoku", "Solo", "Pairlink", "Hoshi", "Recent" }
 local RECENT_ROWS = 8
 
 -- `page` (optional): the page to open on, by name.
@@ -138,6 +141,8 @@ function Stats:drawTabs()
     end
 end
 
+-- Sudoku: a row per difficulty, and one for the daily puzzle, which only has
+-- days solved and its streaks of days.
 function Stats:drawPuzzles()
     local stats = self.app.stats
     local y = 126
@@ -149,40 +154,55 @@ function Stats:drawPuzzles()
     love.graphics.setLineWidth(1)
     love.graphics.line(64, y + 18, 656, y + 18)
 
+    local rows = {}
     local totals = { started = 0, solved = 0 }
-    for k, level in ipairs(LEVELS) do
+    for _, level in ipairs(LEVELS) do
         local e = stats[level.key]
-        local cy = y + 18 + k * 44 - 12
         totals.started = totals.started + e.started
         totals.solved = totals.solved + e.solved
-
-        theme.set("text")
-        ui.centered(level.name, 64, cy, 22, "bold", "left")
-        local values = {
+        rows[#rows + 1] = {
+            level.name,
             tostring(e.started),
             tostring(e.solved),
             tostring(e.perfect),
             e.best > 0 and ui.formatTime(e.best) or "None",
             e.solved > 0 and ui.formatTime(e.total / e.solved) or "None",
+            tostring(e.streak),
+            tostring(e.bestStreak),
         }
+    end
+    local days = self.app.daily.days
+    local today = daily.today()
+    local dailySolved = daily.solvedCount(days)
+    rows[#rows + 1] = {
+        "Daily", "", tostring(dailySolved), "", "", "",
+        tostring(today and daily.streak(days, today.key) or 0),
+        tostring(daily.bestStreak(days)),
+    }
+
+    for k, row in ipairs(rows) do
+        local cy = y + 18 + k * 36 - 12
+        theme.set("text")
+        ui.centered(row[1], 64, cy, 20, "bold", "left")
         for c, col in ipairs(COLUMNS) do
-            local empty = values[c] == "None" or values[c] == "0"
-            theme.set(empty and "muted" or "text")
-            ui.centered(values[c], col.x, cy, 20, "regular", "right")
+            local value = row[c + 1]
+            theme.set((value == "None" or value == "0") and "muted" or "text")
+            ui.centered(value, col.x, cy, 18, "regular", "right")
         end
         theme.set("line")
-        love.graphics.line(64, cy + 22, 656, cy + 22)
+        love.graphics.line(64, cy + 18, 656, cy + 18)
     end
 
     theme.set("muted")
     local summary
-    if totals.started == 0 then
+    if totals.started == 0 and dailySolved == 0 then
         summary = "Solve a puzzle to start filling in this table."
     else
-        summary = string.format("%d of %d puzzles solved. Perfect solves had no hints and no mistakes. "
-            .. "Best times only count solves without hints.", totals.solved, totals.started)
+        summary = string.format("%d of %d puzzles solved. Perfect solves had no hints and no mistakes, and best "
+            .. "times only count solves without hints. A streak counts puzzles solved in a row: starting a new "
+            .. "one before finishing the one in progress ends it. Daily counts days.", totals.solved, totals.started)
     end
-    ui.text(summary, 64, 392, 16, "regular", "left", 592)
+    ui.text(summary, 64, 378, 15, "regular", "left", 592)
 end
 
 -- Solo, Pairlink or Hoshi: a row per size and level, grouped by size.
@@ -238,44 +258,6 @@ function Stats:drawGame(kind)
     ui.text(summary, 64, cy + 12, 15, "regular", "left", 592)
 end
 
-function Stats:drawStreaks()
-    local stats, y = self.app.stats, 126
-    theme.set("muted")
-    ui.centered("Current", 470, y, 15, "regular", "right")
-    ui.centered("Best", 656, y, 15, "regular", "right")
-    theme.set("line")
-    love.graphics.setLineWidth(1)
-    love.graphics.line(64, y + 18, 656, y + 18)
-
-    local rows = {}
-    for _, level in ipairs(LEVELS) do
-        local e = stats[level.key]
-        rows[#rows + 1] = { level.name, e.streak, e.bestStreak, "" }
-    end
-    local days = self.app.daily.days
-    local today = daily.today()
-    rows[#rows + 1] = { "Daily", today and daily.streak(days, today.key) or 0, daily.bestStreak(days), " days" }
-
-    for k, row in ipairs(rows) do
-        local cy = y + 18 + k * 38 - 12
-        theme.set("text")
-        ui.centered(row[1], 64, cy, 22, "bold", "left")
-        for c, x in ipairs({ 470, 656 }) do
-            local n = row[c + 1]
-            theme.set(n > 0 and "text" or "muted")
-            local unit = row[4] ~= "" and (n == 1 and " day" or " days") or ""
-            ui.centered(n .. unit, x, cy, 20, "regular", "right")
-        end
-        theme.set("line")
-        love.graphics.line(64, cy + 19, 656, cy + 19)
-    end
-
-    theme.set("muted")
-    ui.text("A streak counts puzzles solved in a row. Starting a new puzzle before finishing the one "
-        .. "in progress ends that difficulty's streak. The daily streak counts days in a row.",
-        64, 388, 15, "regular", "left", 592)
-end
-
 function Stats:drawRecent()
     local list = self.app.history
     local y = 126
@@ -327,7 +309,6 @@ function Stats:draw()
 
     local page = PAGES[self.page]
     if page == "Recent" then self:drawRecent()
-    elseif page == "Streaks" then self:drawStreaks()
     elseif GAME_PAGES[page] then self:drawGame(GAME_PAGES[page])
     else self:drawPuzzles() end
 

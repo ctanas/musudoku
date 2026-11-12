@@ -3,44 +3,81 @@ local theme = require("src.theme")
 local sound = require("src.sound")
 local input = require("src.input")
 
+-- Settings, for one game at a time: the settings every game shares, and that
+-- game's own. It opens for the game it was reached from (the one on the
+-- title screen, or the one that's paused), so Pairlink isn't offered
+-- Sudoku's notes and hints.
 local Settings = {}
 Settings.__index = Settings
 
--- `about` is a string, or a function that builds it (for button names that
--- follow the Shoulder buttons setting).
+local NAMES = { sudoku = "Sudoku", solo = "Solo", pairlink = "Pairlink", hoshi = "Hoshi" }
+
+local SUDOKU = { sudoku = true }
+local SOLO = { solo = true }
+local SUDOKU_AND_SOLO = { sudoku = true, solo = true }
+
+-- What L1 / R1 do in each game (with the default shoulder buttons)
+local SHOULDER_MOVES = {
+    sudoku = "jump to empty cells or change the number",
+    pairlink = "jump to the next pair",
+    hoshi = "jump to the next island",
+}
+
+-- `games`: the games a row is for (without it, all of them). `about` is a
+-- string, or a function of the game that builds it (for button names that
+-- follow the Shoulder buttons setting, and rows that differ by game).
 local ROWS = {
     { key = "theme", label = "Theme", about = "Light themes: Paper, Sakura, Frankfurt, Solarized Light. Dark: Cyanotype, Solarized Dark, Nord, Gruvbox, and Chalkboard with chalk dust and a wooden frame." },
-    { key = "input", label = "Input",
+    { key = "input", label = "Input", games = SUDOKU,
       choices = { { "cell", "Cell first" }, { "number", "Number first" } },
       about = function()
           return "Cell first: pick a cell, then its number from the pad. Number first: pick a number with "
               .. input.pair("l1") .. ", then press A on each cell it goes in."
       end },
-    { key = "pad", label = "Number pad",
+    { key = "pad", label = "Number pad", games = SUDOKU,
       choices = { { "panel", "Side panel" }, { "popup", "Pop-up" } },
       about = "Where Cell first input picks the number: the tiles in the side panel, or a pad by the cell. Distraction-free mode always uses the pad." },
     { key = "shoulders", label = "Shoulder buttons",
       choices = { { "move", "L1 / R1 move" }, { "undo", "L1 / R1 undo" } },
-      about = "L1 / R1 move: they jump to empty cells or change the number, and L2 / R2 undo and redo. L1 / R1 undo: the other way round, as before version 1.3.3." },
-    { key = "mistakes", label = "Check mistakes", about = "Wrong numbers turn red and are counted. With this off, Check board in the pause menu says how many are wrong, for the cost of a hint." },
-    { key = "matching", label = "Highlight matching numbers", about = "Cells and notes with the selected number light up. In Solo, its repeats in the cursor's row and column do." },
-    { key = "repeats", label = "Show repeats in Solo", about = "Numbers that still repeat in their row or column are tinted a soft red, until their repeats are shaded." },
-    { key = "autoclear", label = "Clear notes automatically", about = "Placing a number removes it from notes in the same row, column and box." },
-    { key = "largeNotes", label = "Large notes", about = "Bigger note digits, easier to read on a small screen." },
-    { key = "hints", label = "Hints",
+      about = function(game)
+          local moves = SHOULDER_MOVES[game]
+          if not moves then
+              return "L1 / R1 move: L2 / R2 undo and redo. L1 / R1 undo: L1 / R1 undo and redo instead. One setting for every game."
+          end
+          return "L1 / R1 move: they " .. moves .. ", and L2 / R2 undo and redo. L1 / R1 undo: the other way round"
+              .. (game == "sudoku" and ", as before version 1.3.3." or ". One setting for every game.")
+      end },
+    { key = "mistakes", label = "Check mistakes", games = SUDOKU, about = "Wrong numbers turn red and are counted. With this off, Check board in the pause menu says how many are wrong, for the cost of a hint." },
+    { key = "matching", label = "Highlight matching numbers", games = SUDOKU_AND_SOLO,
+      about = function(game)
+          if game == "solo" then return "The cursor's number lights up where it repeats in its row and column." end
+          return "Cells and notes with the selected number light up."
+      end },
+    { key = "repeats", label = "Show repeats", games = SOLO, about = "Numbers that still repeat in their row or column are tinted a soft red, until their repeats are shaded." },
+    { key = "autoclear", label = "Clear notes automatically", games = SUDOKU, about = "Placing a number removes it from notes in the same row, column and box." },
+    { key = "largeNotes", label = "Large notes", games = SUDOKU, about = "Bigger note digits, easier to read on a small screen." },
+    { key = "hints", label = "Hints", games = SUDOKU,
       choices = { { "off", "Off" }, { "explained", "Explained" }, { "instant", "Instant" } },
       about = "Off hides the hint button. Explained shows which technique to use next and why. Instant reveals a number straight away." },
     { key = "timer", label = "Show timer", about = "The clock still runs when hidden, so best times stay fair." },
     { key = "sound", label = "Sound effects", about = "Clicks and chimes as you play." },
-    { key = "generator", label = "Puzzle generator",
+    { key = "audioPause", label = "Audio power saving", about = "Rests the sound hardware after 10 seconds of silence, to save battery, and wakes it for the next sound. Turn this off if sounds pop or go missing after a pause." },
+    { key = "generator", label = "Puzzle generator", games = SUDOKU,
       choices = { { "classic", "Classic" }, { "dlx", "Dancing Links" } },
       about = "Both make puzzles with exactly one solution, graded the same way. Classic uses a backtracking solver, Dancing Links uses Knuth's Algorithm X." },
 }
 
 local VISIBLE = 8 -- rows on screen; the list scrolls to keep the selection in view
 
-function Settings.new(app)
-    return setmetatable({ app = app, t = 0, sel = 1, top = 1 }, Settings)
+-- `game`: "sudoku" (the default), "solo", "pairlink" or "hoshi".
+function Settings.new(app, game)
+    local self = setmetatable({ app = app, t = 0, sel = 1, top = 1 }, Settings)
+    self.game = NAMES[game] and game or "sudoku"
+    self.rows = {}
+    for _, row in ipairs(ROWS) do
+        if not row.games or row.games[self.game] then self.rows[#self.rows + 1] = row end
+    end
+    return self
 end
 
 function Settings:scrollToSelection()
@@ -54,7 +91,7 @@ end
 
 function Settings:change(dir)
     local s = self.app.settings
-    local row = ROWS[self.sel]
+    local row = self.rows[self.sel]
     if row.key == "theme" then
         local idx = 1
         for k, key in ipairs(theme.ORDER) do
@@ -78,12 +115,13 @@ function Settings:change(dir)
 end
 
 function Settings:action(a)
+    local count = #self.rows
     if a == "up" then
-        self.sel = (self.sel - 2) % #ROWS + 1
+        self.sel = (self.sel - 2) % count + 1
         self:scrollToSelection()
         sound.play("menu")
     elseif a == "down" then
-        self.sel = self.sel % #ROWS + 1
+        self.sel = self.sel % count + 1
         self:scrollToSelection()
         sound.play("menu")
     elseif a == "left" then
@@ -108,13 +146,14 @@ function Settings:value(row)
 end
 
 function Settings:draw()
+    local rows = self.rows
     theme.set("text")
-    ui.text("Settings", 64, 40, 36, "bold")
+    ui.text(NAMES[self.game] .. " settings", 64, 40, 36, "bold")
 
     local x, w, y0, h = 64, 592, 92, 36
-    local last = math.min(#ROWS, self.top + VISIBLE - 1)
+    local last = math.min(#rows, self.top + VISIBLE - 1)
     for k = self.top, last do
-        local row = ROWS[k]
+        local row = rows[k]
         local cy = y0 + (k - self.top) * h + h / 2
         local selected = (k == self.sel)
         if selected then
@@ -144,13 +183,13 @@ function Settings:draw()
     if self.top > 1 then
         love.graphics.polygon("fill", ax, y0 + 12, ax + 12, y0 + 12, ax + 6, y0 + 5)
     end
-    if last < #ROWS then
+    if last < #rows then
         local by = y0 + VISIBLE * h
         love.graphics.polygon("fill", ax, by - 12, ax + 12, by - 12, ax + 6, by - 5)
     end
 
-    local about = ROWS[self.sel].about
-    if type(about) == "function" then about = about() end
+    local about = rows[self.sel].about
+    if type(about) == "function" then about = about(self.game) end
     ui.text(about, x, y0 + (last - self.top + 1) * h + 14, 16, "regular", "left", w)
 
     ui.hints({ { "B", "Back" }, { "A", "Change" } }, 696, 452, "right")

@@ -46,7 +46,8 @@ local app = {
     focused = true,
     packCache = {},     -- [path] = scanned index, kept for this session
     redrawRequested = true,
-    activeUntil = 0,
+    settle = 0,         -- frames still to draw at rest (see "Idle rendering")
+    lastInput = 0,      -- when a button was last pressed or let go
     framesDrawn = 0,
     puzzles = {},       -- Solo, Pairlink and Hoshi puzzles in progress, by kind
     puzzleStats = {},   -- their statistics, by kind, then size and level
@@ -201,6 +202,7 @@ function app.applySettings()
     theme.use(app.settings.theme)
     sound.enabled = app.settings.sound
     if sound.enabled then sound.load() end -- loads the audio modules on first use
+    sound.setIdlePause(app.settings.audioPause)
     input.setSwapped(app.settings.shoulders == "undo")
 end
 
@@ -394,42 +396,64 @@ end
 
 -- Idle rendering -------------------------------------------------------------
 -- A puzzle game spends most of its time showing a still picture, so the
--- screen is only redrawn when something changed: briefly after input, while
--- the top scene reports busy() (every animation does), or when a scene asks
--- via app.requestRedraw() (the timer does, once a second). Otherwise the
--- loop sleeps and checks for input 60 times a second, or 30 once nothing
--- has been pressed for a few seconds.
+-- screen is only redrawn when something changed: after input, while the top
+-- scene reports busy() (every animation does) or a scene change fades in, or
+-- when a scene asks via app.requestRedraw() (the timer does, once a second).
+-- Otherwise the loop sleeps and checks for input 60 times a second, or 30
+-- once nothing has been pressed for a few seconds.
+--
+-- When an animation is over, SETTLE more frames are drawn with everything
+-- at rest. An animation ends in update(), so the last frame drawn while it
+-- ran is a little short of its end, and would stay on screen (a faint tint,
+-- or a progress bar that never finishes). The second frame is for displays
+-- that show each frame one swap late. Input gets one such frame too.
 
-local AFTER_INPUT = 0.1    -- keep drawing this long after any input
+local SETTLE = 2           -- frames drawn at rest after an animation
 local IDLE_SLEEP = 1 / 60  -- how often to check for input while idle
 local QUIET_SLEEP = 1 / 30 -- ...and once nothing was pressed for QUIET_AFTER
 local QUIET_AFTER = 2
+-- Frames are at least this far apart. Vsync at 60 Hz never gets this far;
+-- it's for faster displays, and for drivers where vsync doesn't hold the
+-- loop back, which would draw an animation as fast as the CPU allows.
+local FRAME_TIME = 1 / 65
 
 function app.requestRedraw()
     app.redrawRequested = true
 end
 
+-- Input: what it changed is drawn at once, and once more at rest.
 function app.wake()
     app.redrawRequested = true
-    app.activeUntil = love.timer.getTime() + AFTER_INPUT
+    app.settle = math.max(app.settle, 1)
+    app.lastInput = love.timer.getTime()
 end
 
+-- Called once per pass of the loop, just before drawing.
 function app.needsFrame()
-    if app.redrawRequested or app.fade > 0 then return true end
-    if love.timer.getTime() < app.activeUntil then return true end
     local top = app.top()
-    return top ~= nil and top.busy ~= nil and top:busy()
+    if app.fade > 0 or (top ~= nil and top.busy ~= nil and top:busy()) then
+        app.settle = SETTLE
+        return true
+    end
+    if app.redrawRequested then return true end
+    if app.settle > 0 then
+        app.settle = app.settle - 1
+        return true
+    end
+    return false
 end
 
 -- Events that shouldn't wake the screen by themselves. Stick movement only
--- matters once it crosses the threshold, and then input.lua fires an action.
-local QUIET_EVENTS = { gamepadaxis = true, joystickaxis = true }
+-- matters once it crosses the threshold, and then input.lua fires an action;
+-- the mouse (on a PC) does nothing in this game.
+local QUIET_EVENTS = { gamepadaxis = true, joystickaxis = true, mousemoved = true }
 
 function love.run()
     love.load(love.arg.parseGameArguments(arg), arg)
     love.timer.step()
     local dt = 0
     return function()
+        local passStart = love.timer.getTime()
         love.event.pump()
         for name, a, b, c, d, e, f in love.event.poll() do
             if name == "quit" then
@@ -448,9 +472,9 @@ function love.run()
             love.draw()
             love.graphics.present()
             app.framesDrawn = app.framesDrawn + 1
-            love.timer.sleep(0.001)
+            love.timer.sleep(math.max(0.001, FRAME_TIME - (love.timer.getTime() - passStart)))
         else
-            local quiet = love.timer.getTime() > app.activeUntil + QUIET_AFTER
+            local quiet = love.timer.getTime() > app.lastInput + QUIET_AFTER
             love.timer.sleep(quiet and QUIET_SLEEP or IDLE_SLEEP)
         end
     end
@@ -479,6 +503,12 @@ function love.load(args)
     app.packProgress = packs.loadProgress(storage.loadPackProgress())
     app.daily = storage.loadDaily()
     app.history = storage.loadHistory()
+    -- A sound device that didn't come back from its idle pause (see
+    -- sound.lua): the setting goes off for good on this system.
+    sound.onStall = function()
+        app.settings.audioPause = false
+        app.saveSettings()
+    end
     app.applySettings()
 
     local saved = storage.loadGame()
@@ -515,12 +545,15 @@ function love.load(args)
         require("dev.hintshots").start(app)
     elseif os.getenv("MUSUDOKU_GAMESHOTS") then
         require("dev.gameshots").start(app)
+    elseif os.getenv("MUSUDOKU_SCENETEST") then
+        require("dev.scenetest").start(app)
     end
 end
 
 function love.update(dt)
     dt = math.min(dt, 1 / 15)
     input.update(dt)
+    sound.update()
     local s = app.top()
     if s and s.update then s:update(dt) end
     if app.fade > 0 then app.fade = math.max(0, app.fade - dt * 6) end
