@@ -1,7 +1,8 @@
 -- Turns gamepad buttons, the analog stick and keyboard keys into actions:
 -- up down left right a b x y l1 r1 l2 r2 select start menu, plus
 -- digit1..digit9 and erase from a PC keyboard, and quit for Menu + Start held
--- together. Directions, l1 and r1 repeat while held.
+-- together. Directions, l1 and r1 repeat while held; a repeat reaches the
+-- handler with a second argument, true.
 --
 -- The shoulder actions are named after the default layout: L1 / R1 fire l1 /
 -- r1 (move between empty cells, change the number) and L2 / R2 fire l2 / r2
@@ -57,8 +58,8 @@ local triggers = {}      -- [axis] = true while pulled
 
 input.handler = function() end
 
-local function fire(action)
-    input.handler(action)
+local function fire(action, isRepeat)
+    input.handler(action, isRepeat)
 end
 
 -- `button` is what was pressed, in default-layout names (see above)
@@ -86,7 +87,8 @@ local function release(button)
 end
 
 -- True while the button for `action` is held down (Solo's Y shows the
--- numbers under shaded cells). Scene changes don't clear it.
+-- numbers under shaded cells, Hoshi's A and B build and take away bridges).
+-- Scene changes don't clear it.
 function input.isDown(action)
     return pressed[action] == true
 end
@@ -115,7 +117,7 @@ function input.update(dt)
         h.t = h.t + dt
         while h.t >= h.next do
             h.next = h.next + REPEAT_RATE
-            fire(action)
+            fire(action, true)
         end
     end
 end

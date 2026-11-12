@@ -198,35 +198,40 @@ local square = {
 local h = HoshiGame.new(square, "easy")
 check("hoshi starts unsolved", not h.solved and h:doneCount() == 0 and h:islandCount() == 4)
 check("hoshi cursor on an island", h:isIsland(h.cursor))
-check("no island that way", h:cycle(1, "up").blocked == "none")
-res = h:cycle(1, "right")
+check("no island that way", h:add(1, "up").blocked == "none")
+res = h:add(1, "right")
 check("a bridge", res.changed and res.added and res.count == 1 and h:bridgesAt(1) == 1 and h:bridgesAt(3) == 1)
-res = h:cycle(1, "right")
+res = h:add(1, "right")
 check("a second bridge", res.count == 2 and h:bridgesAt(3) == 2)
-res = h:cycle(3, "left")
-check("a third press takes them away", res.changed and not res.added and res.count == 0 and h:bridgesAt(1) == 0)
+res = h:add(3, "left")
+check("no third", res.blocked == "full" and res.link == h:linkToward(1, "right") and h:bridgesAt(1) == 2 and #h.undoStack == 2)
+res = h:remove(3, "left")
+check("taking one away", res.changed and not res.added and res.count == 1 and h:bridgesAt(1) == 1)
+h:remove(1, "right")
+check("and the other", h:bridgesAt(1) == 0)
+check("nothing to take away", h:remove(1, "right").blocked == "none" and h:remove(1, "up").blocked == "none" and #h.undoStack == 4)
 local bottom = h:linkToward(7, "right")
-h:cycle(7, "right")
-check("between two 1s, one bridge", h.counts[bottom] == 1)
-h:cycle(9, "left")
+h:add(7, "right")
+check("between two 1s, one bridge", h.counts[bottom] == 1 and h:add(9, "left").blocked == "full")
+h:remove(9, "left")
 check("then none", h.counts[bottom] == 0)
 check("undo", h:undo() == 9 and h.counts[bottom] == 1)
 check("redo", h:redo() == 9 and h.counts[bottom] == 0)
 
-h:cycle(7, "up")
+h:add(7, "up")
 check("an island with its number is done", h:state(7) == "done" and h:doneCount() == 1)
-h:cycle(7, "right")
+h:add(7, "right")
 check("one with more is over", h:state(7) == "over" and h:state(9) == "done")
 h:undo()
-h:cycle(1, "right")
-h:cycle(1, "right")
+h:add(1, "right")
+h:add(1, "right")
 check("both ends of a double", h:state(1) == "done" and h:state(3) == "short")
 res = h:clearIsland(1)
 check("clearing an island", res.changed and #res.links == 2 and h:bridgesAt(1) == 0 and h:bridgesAt(3) == 0)
 check("clearing nothing", not h:clearIsland(1).changed)
 check("undoing a clear", h:undo() == 1 and h:bridgesAt(1) == 3)
 check("not solved yet", not h.solved and h:nextUnfinished(1, 1) == 3)
-res = h:cycle(3, "down")
+res = h:add(3, "down")
 check("the last bridge solves it", res.solved and h.solved and h:nextUnfinished(1, 1) == nil)
 check("next island in line", h:nextIsland(1, "right") == 3 and h:nextIsland(1, "down") == 7)
 check("no island that way to move to", h:nextIsland(1, "left") == nil and h:nextIsland(9, "down") == nil)
@@ -246,6 +251,17 @@ check("hoshi rejects a broken save", HoshiGame.deserialize({ version = 1, size =
 h:restart()
 check("hoshi restart", not h.solved and h:bridgesAt(1) == 0 and #h.undoStack == 0 and h.elapsed == 0)
 
+-- every bridge of the answer and one too many: taking that one away solves it
+local extra = HoshiGame.new(square, "easy")
+extra:add(7, "right")
+extra:add(1, "right")
+extra:add(1, "right")
+extra:add(1, "down")
+extra:add(3, "down")
+check("a bridge too many isn't solved", not extra.solved and extra:state(7) == "over")
+res = extra:remove(9, "left")
+check("taking it away solves it", res.solved and extra.solved)
+
 -- 5x5: a row and a column cross in the middle; the answer uses the row.
 local crossing = {
     size = 5,
@@ -253,11 +269,11 @@ local crossing = {
     bridges = { { 11, 15, 1 }, { 3, 5, 1 }, { 5, 15, 1 }, { 15, 25, 1 }, { 23, 25, 1 } },
 }
 local hc = HoshiGame.new(crossing, "easy")
-hc:cycle(11, "right")
-res = hc:cycle(3, "down")
+hc:add(11, "right")
+res = hc:add(3, "down")
 check("a bridge can't cross another", res.blocked == "cross" and res.link == hc:linkToward(11, "right"))
 hc:undo()
-check("once it's gone, it can", hc:cycle(3, "down").changed)
+check("once it's gone, it can", hc:add(3, "down").changed)
 
 -- a generated puzzle solves with its own bridges, built the way a player would
 local genH = hoshi.generate(9, "hard", rng)
@@ -265,7 +281,7 @@ local hg = HoshiGame.new(genH, "hard")
 for _, b in ipairs(genH.bridges) do
     local l = hoshi.linkBetween(hg.P, b[1], b[2])
     local link = hg.P.links[l]
-    for _ = 1, b[3] do res = hg:cycle(link.a, link.horizontal and "right" or "down") end
+    for _ = 1, b[3] do res = hg:add(link.a, link.horizontal and "right" or "down") end
 end
 check("generated hoshi solves with its bridges", res.solved and hg:doneCount() == hg:islandCount())
 

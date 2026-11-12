@@ -19,6 +19,13 @@ local M = {}
 local IDENTITY = "musudoku-scenetest"
 local PACK_LINES = 30000 -- enough that reading the pack takes several frames
 
+-- A 3x3 Hoshi: two bridges along the top (between the 3s), one down each side.
+local HOSHI_SQUARE = {
+    size = 3,
+    clues = { 3, 0, 3, 0, 0, 0, 1, 0, 1 },
+    bridges = { { 1, 3, 2 }, { 1, 7, 1 }, { 3, 9, 1 } },
+}
+
 -- Empties the save folder. (Listings also show the game's own files; those
 -- are left alone, and couldn't be removed anyway.)
 local function removeAll(path)
@@ -94,6 +101,13 @@ function M.start(app)
 
     local function press(...)
         for _, a in ipairs({ ... }) do input.handler(a) end
+    end
+    -- Real key presses and releases, for buttons that are held (input.isDown)
+    local function keyDown(k) input.keypressed(k) end
+    local function keyUp(k) input.keyreleased(k) end
+    local function key(k)
+        keyDown(k)
+        keyUp(k)
     end
     local function top() return app.top() end
     local function firstEmpty()
@@ -311,6 +325,76 @@ function M.start(app)
             press("b")
             app.titleGame = "sudoku"
             top():build()
+        end,
+
+        -- Hoshi's controls, with real presses and releases ------------------
+        -- (Space is A, Backspace B.)
+        function()
+            app.startPuzzle("hoshi", HOSHI_SQUARE, "easy")
+            return 0.5
+        end,
+        function()
+            local g, s = app.puzzles.hoshi, top()
+            local across, side = g:linkToward(1, "right"), g:linkToward(1, "down")
+            g.cursor = 1
+            key("right")
+            check(g.cursor == 3 and g.counts[across] == 0, "Hoshi: a direction moves to the next island")
+            key("left")
+            keyDown("space")
+            key("right")
+            key("right")
+            key("down")
+            check(g.cursor == 1 and g.counts[across] == 2 and g.counts[side] == 1 and s.mode == "build",
+                "Hoshi: with A held, directions build bridges and the cursor stays (%d, %d)", g.counts[across], g.counts[side])
+            key("right")
+            check(g.counts[across] == 2 and #g.undoStack == 3, "Hoshi: no third bridge between two islands")
+            keyUp("space")
+            return 0.1
+        end,
+        function()
+            local g, s = app.puzzles.hoshi, top()
+            check(s.mode == nil, "Hoshi: letting go of A after building ends it")
+            key("right")
+            check(g.cursor == 3, "Hoshi: then directions move again")
+            key("backspace")
+            return 0.1
+        end,
+        function()
+            local g, s = app.puzzles.hoshi, top()
+            check(s.mode == "remove" and s.latched, "Hoshi: B pressed and let go waits for a direction")
+            key("left")
+            check(g.counts[g:linkToward(3, "left")] == 1 and g.cursor == 3 and s.mode == nil,
+                "Hoshi: then a direction takes one bridge away, once")
+            key("space")
+            return 0.1
+        end,
+        function()
+            local g, s = app.puzzles.hoshi, top()
+            check(s.mode == "build" and s.latched, "Hoshi: A pressed and let go waits for a direction")
+            key("space")
+            check(s.mode == nil, "Hoshi: A again cancels")
+            key("x")
+            check(g:bridgesAt(3) == 0 and g:bridgesAt(1) == 1, "Hoshi: X takes away all the island's bridges")
+            keyDown("space")
+            keyDown("left")
+            return 0.6 -- past the repeat delay: left repeats
+        end,
+        function()
+            local g = app.puzzles.hoshi
+            keyUp("left")
+            keyUp("space")
+            check(g.counts[g:linkToward(3, "left")] == 1, "Hoshi: a direction held down builds one bridge, not one per repeat (%d)",
+                g.counts[g:linkToward(3, "left")])
+            return 0.1
+        end,
+        function()
+            local g, s = app.puzzles.hoshi, top()
+            keyDown("space")
+            key("left")
+            key("down")
+            keyUp("space")
+            check(g.solved and s.winT ~= nil and s.mode == nil, "Hoshi: the last bridge solves it")
+            return 2.5
         end,
 
         -- The audio device while idle ---------------------------------------

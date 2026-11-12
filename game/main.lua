@@ -525,11 +525,11 @@ function love.load(args)
         end
     end
 
-    input.handler = function(action)
+    input.handler = function(action, isRepeat)
         app.wake()
         if action == "quit" then return app.quit() end
         local s = app.top()
-        if s and s.action then s:action(action) end
+        if s and s.action then s:action(action, isRepeat) end
     end
 
     app.setScene("title")

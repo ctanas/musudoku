@@ -31,19 +31,18 @@ function M.start(app)
     local function pairs_() return app.puzzles.pairlink end
     local function islands() return app.puzzles.hoshi end
 
-    -- Hoshi: draw the answer's bridges the way a player would (A, across,
-    -- and back again for a second bridge, A), the first `count` of them (all
-    -- if nil).
+    -- Hoshi: build the answer's bridges the way a player would (A and a
+    -- direction, twice for two bridges), the first `count` of them (all if
+    -- nil).
     local function hoshiBuild(count, from)
         local g = islands()
         for k, b in ipairs(g.solution) do
             if count and k > count then break end
             if k >= (from or 1) then
                 local link = g.P.links[hoshi.linkBetween(g.P, b[1], b[2])]
+                local dir = link.horizontal and "right" or "down"
                 g.cursor = link.a
-                press("a", link.horizontal and "right" or "down")
-                if b[3] == 2 then press(link.horizontal and "left" or "up") end
-                press("a")
+                for _ = 1, b[3] do press("a", dir) end
             end
         end
     end
@@ -454,9 +453,19 @@ function M.start(app)
             press("a")
             return 0.4
         end,
-        function() shot("45_hoshi_drawing") end,
+        function() shot("45_hoshi_building") end,
         function()
-            press("a")
+            press("a") -- cancelled
+            local g = islands()
+            for l, link in ipairs(g.P.links) do
+                if g.counts[l] > 0 then g.cursor = link.a break end
+            end
+            press("b")
+            return 0.4
+        end,
+        function() shot("46_hoshi_removing") end,
+        function()
+            press("b")
             return 0.3
         end,
         function()
@@ -465,7 +474,7 @@ function M.start(app)
             for l, link in ipairs(g.P.links) do
                 if g.counts[l] > 0 and g.counts[l] < link.max and g:state(link.a) == "done" then
                     g.cursor = link.a
-                    press("a", link.horizontal and "right" or "down", "a")
+                    press("a", link.horizontal and "right" or "down")
                     break
                 end
             end
@@ -549,7 +558,7 @@ function M.start(app)
             local g = islands()
             local try = crossingTry()
             g.cursor = try.first.a
-            press("a", try.first.dir, "a")
+            press("a", try.first.dir)
             g.cursor = try.second.a
             press("a", try.second.dir)
             return 0.1

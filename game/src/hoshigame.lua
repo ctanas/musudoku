@@ -179,23 +179,38 @@ end
 
 -- Building --------------------------------------------------------------------
 
--- Adds a bridge from island i in a direction: none, one, two, then none
--- again (one, then none, where an island's number is 1). Returns
--- { changed, link, count, added, solved }, or { blocked = "none" } when
--- there's no island that way and { blocked = "cross", link } when a bridge
--- is in the way.
-function HoshiGame:cycle(i, dir)
+-- Puts `after` bridges on link l, from island i, as one undo step.
+local function setCount(g, i, l, after)
+    local before = g.counts[l]
+    g.counts[l] = after
+    g:record({ at = i, { l, before, after } })
+    return { changed = true, link = l, count = after, added = after > before, solved = g:checkSolved() }
+end
+
+-- Adds a bridge from island i in a direction, up to the link's most: two,
+-- or one where either island's number is 1. Returns { changed, link, count,
+-- added = true, solved }, or { blocked = "none" } when there's no island
+-- that way, { blocked = "full", link } when the link can't take another,
+-- and { blocked = "cross", link } when a bridge is in the way.
+function HoshiGame:add(i, dir)
     local l = self:linkToward(i, dir)
     if not l then return { blocked = "none" } end
     local before = self.counts[l]
-    local after = (before + 1) % (self.P.links[l].max + 1)
-    if before == 0 and after > 0 then
+    if before >= self.P.links[l].max then return { blocked = "full", link = l } end
+    if before == 0 then
         local m = self:crossing(l)
         if m then return { blocked = "cross", link = m } end
     end
-    self.counts[l] = after
-    self:record({ at = i, { l, before, after } })
-    return { changed = true, link = l, count = after, added = after > before, solved = self:checkSolved() }
+    return setCount(self, i, l, before + 1)
+end
+
+-- Takes one bridge away from island i in a direction. Returns { changed,
+-- link, count, added = false, solved } (taking away a bridge too many can
+-- solve the puzzle), or { blocked = "none" } when there's no bridge that way.
+function HoshiGame:remove(i, dir)
+    local l = self:linkToward(i, dir)
+    if not l or self.counts[l] == 0 then return { blocked = "none" } end
+    return setCount(self, i, l, self.counts[l] - 1)
 end
 
 -- Takes away every bridge at island i. Returns { changed, links }.

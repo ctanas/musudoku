@@ -8,7 +8,7 @@ RG34XXSP's 720×480 screen and scaled to fit other resolutions.
 
 <img src="screenshots/title.png" alt="Title screen: a Sudoku box on the left, with the menu beside it" width="49%"> <img src="screenshots/play.png" alt="Sudoku: a Hard puzzle with pencil notes" width="49%">
 <img src="screenshots/hint.png" alt="Sudoku: an explained hint, a naked pair, with the notes it rules out crossed off" width="49%"> <img src="screenshots/solo.png" alt="Solo: a 7×7 Medium puzzle part way through, black shaded cells with rings on the cells kept beside them, and the numbers that still repeat tinted" width="49%">
-<img src="screenshots/pairlink.png" alt="Pairlink: an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%"> <img src="screenshots/hoshi.png" alt="Hoshi: a 9×9 Medium puzzle part way through, with a bridge being drawn from an island" width="49%">
+<img src="screenshots/pairlink.png" alt="Pairlink: an 8×8 Medium puzzle with six of nine pairs linked and a line being drawn" width="49%"> <img src="screenshots/hoshi.png" alt="Hoshi: a 9×9 Medium puzzle part way through, with an island ready to build a bridge from" width="49%">
 
 | Game | The goal | Boards | Levels |
 |---|---|---|---|
@@ -345,21 +345,27 @@ the islands with bridges:
 
 | Button | Hoshi |
 |---|---|
-| D-pad | Move to the next island that way (the next one in line, or else the nearest one that way); while drawing, draw a bridge that way |
-| A | Start drawing from the island; A again stops |
-| B | Take away the island's bridges (or stop drawing) |
+| D-pad | Move to the next island that way (the next one in line, or else the nearest one that way) |
+| A + D-pad | Build a bridge that way; the same way again builds a second one |
+| B + D-pad | Erase a bridge that way |
+| X | Erase all the island's bridges |
 | L1 / R1 | Jump to the previous / next island that doesn't have its number of bridges |
 | L2 / R2 | Undo / redo |
 | Start / Menu | Pause menu |
 
-Bridges are drawn like Pairlink's lines. While drawing, each direction draws a bridge to
-the island that way, and the cursor goes on to that island, so one bridge can follow
-another. Drawing over a bridge makes it two, so for two bridges go across and back again;
-drawing over two takes them away (next to a 1, drawing over one does). Faint lines show
-where a bridge can still go. A bridge that would cross another isn't built, and the one in its way
-glows red. An island with its number of bridges is tinted in the bridges' colour, and
-one with too many turns red. The cursor's row and column are lit, so islands in line
-with it stand out, and the side panel counts the islands done.
+The cursor stays on its island while you build, so all of an island's bridges are built
+from it: on a 3, hold A and press right, right, down for two bridges to the right and
+one down. Let go of A and the D-pad moves again. A or B pressed and let go on its own
+works for the next direction only, like a phone keyboard's shift key; pressing it again
+cancels. Holding a direction down builds or erases one bridge, not one per repeat.
+
+While building, the cursor turns the accent colour and faint lines show where a bridge
+can still go; while erasing, it turns red, and so do the island's bridges. Two islands
+take at most two bridges, or one next to a 1. A bridge that would cross another isn't
+built, and the one in its way glows red. Bridges look like Pairlink's lines. An island
+with its number of bridges is tinted in the bridges' colour, and one with too many
+turns red. The cursor's row and column are lit, so islands in line with it stand out,
+and the side panel counts the islands done.
 
 **Sizes and levels.** 7×7 and 9×9 (about 12 and 20 islands), each in three levels:
 
@@ -486,9 +492,10 @@ Linux). Use it to check layout changes. With no display, prefix it with
 `./build.sh scenetest` (or `MUSUDOKU_SCENETEST=1 love game`) plays through the
 screens' behaviour that the luajit tests can't reach, and prints PASS or FAIL for
 each check: undo and redo at the ends of their history, what the pause menu and
-Settings offer for each game, that dialogs ask before a puzzle is replaced, that an
-animation's last frame is drawn, how many frames an idle screen draws, and the
-audio device's pause, resume and recovery. It exits with 1 if a check fails. It uses
+Settings offer for each game, that dialogs ask before a puzzle is replaced, Hoshi's
+building and erasing with A and B held or tapped, that an animation's last frame is
+drawn, how many frames an idle screen draws, and the audio device's pause, resume and
+recovery. It exits with 1 if a check fails. It uses
 a save folder of its own (`musudoku-scenetest`), so your saves and settings are left
 alone. With no display, prefix it with `xvfb-run -a`.
 
@@ -544,7 +551,7 @@ audio's wake-ups, not all of them; only Sound effects off does that.
 `MUSUDOKU_FXSHOTS=1 love game` captures the completion effects mid-animation.
 
 `MUSUDOKU_GAMESHOTS=1 love game` plays through the Solo, Pairlink and Hoshi screens
-(the title with each game, new puzzle, play, a link effect, drawing bridges, pause, wins
+(the title with each game, new puzzle, play, a link effect, building and erasing bridges, pause, wins
 and statistics, in several themes) and saves screenshots named `g*.png`.
 `MUSUDOKU_GAMESHOTS=hoshi` takes only Hoshi's.
 

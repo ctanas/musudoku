@@ -7,11 +7,14 @@ local Board = require("src.boardscene")
 -- The Hoshi play screen. boardscene.lua does the layout, cursor, pausing and
 -- celebrating; this adds islands, bridges and the side panel.
 --
--- The cursor goes from island to island. A starts drawing at the island it's
--- on, as in Pairlink: each direction then draws a bridge to the island that
--- way and the cursor goes on to it, so one bridge can follow another.
--- Drawing over a bridge makes it two, and over two takes them away (next to
--- a 1, over one takes it away). A or B stops drawing.
+-- The cursor goes from island to island, and bridges are built from the
+-- island it's on, which it stays on:
+--   * With A held, each direction builds a bridge that way (the same way
+--     again, a second one). With B held, each takes one away.
+--   * A or B pressed and let go on its own does that for the next direction
+--     only, like a phone keyboard's shift key; pressing it again cancels.
+--   * X takes away all the island's bridges.
+-- A direction held down builds or takes away one bridge, not one per repeat.
 local HoshiPlay = Board.extend({})
 
 local RULES = {
@@ -21,6 +24,16 @@ local RULES = {
 }
 
 local DIRS = { up = true, down = true, left = true, right = true }
+local MODES = { a = "build", b = "remove" }
+
+-- The side panel's line on what to do next.
+local HELP = {
+    idle = "Hold A or B and press a direction. X clears the island.",
+    build = "Press a direction to build a bridge that way.",
+    remove = "Press a direction to erase a bridge that way.",
+    buildOnce = "Press a direction to build a bridge that way, or A to cancel.",
+    removeOnce = "Press a direction to erase a bridge that way, or B to cancel.",
+}
 
 local GROW = 0.14    -- a new bridge reaching across
 local POP = 0.2      -- an island bumping when its bridges change
@@ -55,15 +68,23 @@ function HoshiPlay:moveToward(dir)
     sound.play("move")
 end
 
-function HoshiPlay:beginDrawing()
-    self.drawing = true
-    sound.play("note")
+-- What A and B are doing: `mode` is "build", "remove" or nil, `modeKey` the
+-- button for it, `modeUsed` whether a direction has used it yet, and
+-- `latched` whether that button was let go first (then it waits for one
+-- direction).
+function HoshiPlay:setMode(mode, key)
+    self.mode, self.modeKey, self.modeUsed, self.latched = mode, key, false, false
 end
 
-function HoshiPlay:endDrawing(silent)
-    if not self.drawing then return end
-    self.drawing = false
-    if not silent then sound.play("note") end
+-- A or B: building or taking away starts, or stops if it was waiting for a
+-- direction.
+function HoshiPlay:press(key)
+    if self.latched then
+        self:setMode(nil)
+    else
+        self:setMode(MODES[key], key)
+    end
+    sound.play("note")
 end
 
 function HoshiPlay:bump(l)
@@ -71,18 +92,19 @@ function HoshiPlay:bump(l)
     self.pops[link.a], self.pops[link.b] = self.t, self.t
 end
 
--- One bridge drawn from the cursor's island toward dir, the cursor going on
--- to the island at its other end.
-function HoshiPlay:extend(dir)
+-- One bridge built, or taken away, from the cursor's island toward dir.
+function HoshiPlay:bridge(dir)
     local g = self.game
     local from = g.cursor
-    local res = g:cycle(from, dir)
+    local res = self.mode == "build" and g:add(from, dir) or g:remove(from, dir)
+    self.modeUsed = true
+    if self.latched then self:setMode(nil) end
     if res.blocked then
+        -- the bridge in the way, or the one that can't take another
         if res.link then self.inWay = { link = res.link, t = self.t } end
         return self:blocked()
     end
     local link = g.P.links[res.link]
-    g.cursor = (link.a == from) and link.b or link.a
     self.app.markPuzzleDirty("hoshi")
     self:bump(res.link)
     if res.added then
@@ -94,8 +116,8 @@ function HoshiPlay:extend(dir)
         sound.play("erase")
     end
     if res.solved then
-        self:endDrawing(true)
-        self:startWin(g.cursor)
+        self:setMode(nil)
+        self:startWin(from)
     end
 end
 
@@ -127,25 +149,22 @@ function HoshiPlay:history(which)
 end
 
 function HoshiPlay:pause()
-    self:endDrawing(true)
+    self:setMode(nil)
     Board.pause(self)
 end
 
-function HoshiPlay:action(a)
+function HoshiPlay:action(a, isRepeat)
     if self.winT then return end
     if a == "start" or a == "menu" then return self:pause() end
-    if self.drawing then
-        if DIRS[a] then self:extend(a)
-        elseif a == "a" or a == "b" then self:endDrawing()
-        elseif a == "l2" or a == "r2" then
-            self:endDrawing(true)
-            self:history(a == "l2" and "undo" or "redo")
-        end
+    if DIRS[a] then
+        if not self.mode then return self:moveToward(a) end
+        if not isRepeat then self:bridge(a) end
         return
     end
-    if DIRS[a] then self:moveToward(a)
-    elseif a == "a" then self:beginDrawing()
-    elseif a == "b" or a == "erase" then self:clearIsland()
+    if MODES[a] then return self:press(a) end
+    -- any other button ends a wait for a direction
+    if self.latched then self:setMode(nil) end
+    if a == "x" or a == "erase" then self:clearIsland()
     elseif a == "l1" or a == "r1" then self:jumpUnfinished(a == "l1" and -1 or 1)
     elseif a == "l2" then self:history("undo")
     elseif a == "r2" then self:history("redo")
@@ -156,6 +175,12 @@ end
 
 function HoshiPlay:update(dt)
     Board.update(self, dt)
+    -- A or B let go: that's it, if a direction used it; if not, it waits
+    -- for one
+    if self.mode and not self.latched and not input.isDown(self.modeKey) then
+        if self.modeUsed then self:setMode(nil) else self.latched = true end
+        self.app.requestRedraw()
+    end
     for i, t in pairs(self.pops) do
         if self.t > t + POP then self.pops[i] = nil end
     end
@@ -193,8 +218,11 @@ function HoshiPlay:drawBridges()
             local x2, y2 = self:center(to)
             local p = grow and ui.ease(math.min(1, (self.t - grow.t) / GROW)) or 1
             local inWay = self.inWay and self.inWay.link == l
+            local removable = self.mode == "remove" and (link.a == g.cursor or link.b == g.cursor)
             if inWay then
                 theme.mix("user", "error", 1 - (self.t - self.inWay.t) / IN_WAY)
+            elseif removable then
+                theme.mix("user", "error", 0.55)
             else
                 theme.set("user")
             end
@@ -213,10 +241,11 @@ function HoshiPlay:drawBridges()
     end
 end
 
--- While drawing: a faint line to each island a bridge could still go to.
+-- While building: a faint line to each island a bridge could still go to.
+-- (While taking away, the island's bridges are tinted red instead.)
 function HoshiPlay:drawGuides()
     local g = self.game
-    if not self.drawing then return end
+    if self.mode ~= "build" then return end
     love.graphics.setLineWidth(2)
     theme.set("mark", 0.45)
     for _, dir in ipairs({ "up", "down", "left", "right" }) do
@@ -268,18 +297,21 @@ function HoshiPlay:drawIslands()
 end
 
 -- The cursor: a ring around its island, sliding between islands, with a
--- halo in the board's colour so it shows over bridges.
+-- halo in the board's colour so it shows over bridges. Building, it's in the
+-- accent colour; taking away, red.
+local CURSOR_COLORS = { build = "accent", remove = "error" }
+
 function HoshiPlay:drawCursor()
     if self.winT then return end
     local dx = 0
     if self.shake > 0 then dx = math.sin(self.shake * 70) * 4 * (self.shake / 0.25) end
     local cx, cy = self.vx + self.cs / 2 + dx, self.vy + self.cs / 2
     local r = self:radius() + 6
-    local width = self.drawing and 4 or 3
+    local width = self.mode and 4 or 3
     theme.set("board")
     love.graphics.setLineWidth(width + 4)
     love.graphics.circle("line", cx, cy, r)
-    theme.set(self.drawing and "accent" or "mark")
+    theme.set(CURSOR_COLORS[self.mode] or "mark")
     love.graphics.setLineWidth(width)
     love.graphics.circle("line", cx, cy, r)
 end
@@ -330,18 +362,25 @@ function HoshiPlay:drawPanel()
     local done, total = g:doneCount(), g:islandCount()
     self:drawProgress(x, 58, done / total)
     Board.drawCounter("Islands done", done .. " of " .. total, x, 82)
-    Board.drawRules(x, 104, "Hoshi", RULES)
+    local rulesEnd = Board.drawRules(x, 104, "Hoshi", RULES)
 
-    local undo = { { input.label("l2"), "Undo" }, { input.label("r2"), "Redo" } }
-    if self.drawing then
-        local top = Board.drawLegend({ { { "A", "Stop drawing" } }, undo })
-        theme.set("muted")
-        ui.text("Move to draw a bridge. Drawing over a bridge makes two, and over two, none.",
-            x, top - 74, 15, "regular", "left", Board.PW)
-    else
-        local top = Board.drawLegend({ { { "A", "Draw" }, { "B", "Erase" } }, undo })
-        -- its own row, so its wide glyph doesn't push the columns apart
-        ui.hints({ { input.pair("l1"), "Next island" } }, x, top - 32, "left", nil, 20, 1.2)
+    local top = Board.drawLegend({
+        { { "A", "Build" }, { "B", "Erase" } },
+        { { input.label("l2"), "Undo" }, { input.label("r2"), "Redo" } },
+    })
+    -- its own row, so its wide glyph doesn't push the columns apart
+    local hintsY = top - 32
+    ui.hints({ { input.pair("l1"), "Next island" } }, x, hintsY, "left", nil, 20, 1.2)
+
+    -- What to do next, in the room between the rules and the buttons. How
+    -- much room text takes depends on the screen's scale, so it's measured,
+    -- and left out where it doesn't fit.
+    local help = HELP[self.mode and (self.mode .. (self.latched and "Once" or "")) or "idle"]
+    local h = ui.wrapHeight(help, 15, "regular", Board.PW)
+    local gapTop, gapBottom = rulesEnd + 8, hintsY - 18
+    if h <= gapBottom - gapTop then
+        theme.set(self.mode and "text" or "muted")
+        ui.text(help, x, gapTop + math.floor((gapBottom - gapTop - h) / 2), 15, "regular", "left", Board.PW)
     end
 end
 
